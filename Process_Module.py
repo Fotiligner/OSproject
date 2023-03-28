@@ -118,12 +118,12 @@ class Process_Module(threading.Thread):
         self.pcb_list.append(a)
         #self.current_running = a.pid
 
-    def scheduler(self):
-        # print("进入了Scheduler")
-        if len(self.pcb_list) > 0:
-            for i in self.pcb_list:
-                self.current_running = i.pid
-        return 0
+    # def scheduler(self):
+    #     # print("进入了Scheduler")
+    #     if len(self.pcb_list) > 0:
+    #         for i in self.pcb_list:
+    #             self.current_running = i.pid
+    #     return 0
 
 
 if __name__ == '__main__':
