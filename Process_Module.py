@@ -104,17 +104,20 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler):
         while 1:
             if e.is_set() and target:  #正常运行
                 target = False
-                print("current_time: "+str(current_time))
+                self.print_status()
                 if(self.running_pid != -1):
-                    if self.pcb_list[self.running_pid].pc!= len(self.pcb_list[self.running_pid].command_queue):
-                        pass
+                    print("运行中")
+                    ## 向内存中要一段代码的位置 传递过去pid和程序计数器  返回一个字符串  需要提前定义好一行指令的大小
+                    #if self.pcb_list[self.running_pid].pc!= len(self.pcb_list[self.running_pid].command_queue):
+                    #    pass
                 elif(self.running_pid == -1):
-                    print("无进程使用,启动调度算法")
-                    b=self.scheduler()
+                    #print("无进程使用,启动调度算法")
+                    b=self.scheduler("no running")
             elif not e.is_set():           # 进入中断
                 e.wait()  # 正在阻塞状态,当event变为True时就激活
-                print("一个原子时间结束,启动调度算法")
-                self.scheduler()
+                #print("一个原子时间结束,启动调度算法")
+                self.print_status()
+                self.scheduler("time")
                 target = True
 
     def create_process(self):
@@ -127,6 +130,13 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler):
         #self.current_running = a.pid
 
 
+
+    def print_status(self):
+        print("========")
+        print("current_time: " + str(current_time))
+        print("current_running: " + str(self.running_pid))
+        print("ready queue: " + str(self.ready_queue))
+        print("========")
 
 if __name__ == '__main__':
     e = Event()  # 默认False
