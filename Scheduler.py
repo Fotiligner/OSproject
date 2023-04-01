@@ -11,7 +11,7 @@ class ProcessScheduler(Process_Utils.Process_Utils):
     def scheduler(self, type):
         print("Scheduler")
         if (self.schedule_type == "FCFS"):
-            if(type == " no running" ):
+            if(type == "no running" ):
                 self.Scheduler_FCFS()
         #后面俩还没写
         # 时间片轮转
