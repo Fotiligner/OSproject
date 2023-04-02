@@ -23,7 +23,7 @@ class Process_Utils():
     def getCurrentpid(self):
         count = 0
         for i in self.pcb_pool:
-            print("====正在调度get,pid="+str(i.pid) + ",status="+str(i.status))
+            #print("====正在调度get,pid="+str(i.pid) + ",status="+str(i.status))
             count+=1
             #如果发现存在已经终止的pcb,就用这个pcb
             if i.status == "terminated":

@@ -2,7 +2,7 @@ import Process_Utils
 #专门负责进程调度的类
 class ProcessScheduler(Process_Utils.Process_Utils):
     def __init__(self):
-        self.schedule_type="FCFS"
+        self.schedule_type="Preempting"
         self.ready_queue = []
         self.waiting_queue = []
         self.time_slot = 3        #代表时间片为三个单位时间
@@ -14,9 +14,7 @@ class ProcessScheduler(Process_Utils.Process_Utils):
             #FCFS只在没有运行程序的时候才会被调度
             if type == "no running" and len(self.ready_queue) != 0:
                 self.Scheduler_FCFS()
-        # 后面俩还没写
         # 时间片轮转
-        # 需要在manager里添加一个时间片计数器
         # 若时间片没有用完，进程就结束，那么立即调度就绪队列中的队首进程运行，并启动一个新的时间片。
         elif (self.schedule_type == "RR"):
             self.Scheduler_RR()

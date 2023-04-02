@@ -53,7 +53,7 @@ class PCB:
             self.last_time += info[1]
             self.command_queue.append(info)
         #print(self.command_queue)
-            self.show_pcb()
+        self.show_pcb()
 
         # self.processor=processor
         # self.nice = 1
@@ -98,7 +98,7 @@ class PCB:
             self.last_time += info[1]
             self.command_queue.append(info)
         #print(self.command_queue)
-            self.show_pcb()
+        self.show_pcb()
 
         # self.processor=processor
         # self.nice = 1
