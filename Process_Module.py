@@ -3,6 +3,7 @@ from threading import Event, Thread, current_thread
 import time
 import random
 import Scheduler
+import Process_Utils
 
 from IO_Module import IO_Module
 
@@ -11,7 +12,7 @@ class PCB:
                  child_pid=None,
                  already_time=None,
                  waiting_time=None, priority=None,
-                 page_allocated=[], pc_end=None
+                 page_allocated=[], pc_end=None, content=""
                  ):
         self.pid = pid
         self.parent_pid = parent_pid
@@ -38,10 +39,15 @@ class PCB:
         # self.pc_time = 0
         # self.PSW=PSW
         # self.user_ptr=user_ptr
-        # for command in content.split(';'):
-        #     info = command.split( )
-        #     info[1] = int(info[1])
-        #     self.command_queue.append(info)
+        self.last_time = 0
+        for command in content.split(';'):
+            info = command.split( )
+            info[1] = int(info[1])
+            self.last_time += info[1]
+            self.command_queue.append(info)
+        #print(self.command_queue)
+
+        print("在"+str(current_time)+"时刻创建了进程"+str(self.pid) + ", last_time: "+str(self.last_time))
         # self.processor=processor
         # self.nice = 1
         # self.type = type #区分是CPU密集型还是IO型, 0代表CPU, 1代表IO
@@ -61,7 +67,7 @@ def clock():  #  模拟时钟
 # event类似于信号量，赋值True和False
 
 
-class Process_Module(threading.Thread, Scheduler.ProcessScheduler):
+class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils.Process_Utils):
     def __init__(self):
         #初始化父类ProcessScheduler
         Scheduler.ProcessScheduler.__init__(self)
@@ -89,7 +95,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler):
             if success: # 内存分配成功
                 self.pcb_pool.append(PCB(pid=self.current_pid, parent_pid=-1, \
                                          child_pid=-1, priority=1, start_time=current_time, \
-                                         page_allocated=[], pc_end=5))   # 暂时
+                                         page_allocated=[], pc_end=5 , content = "cpu 5;cpu 5"))   # 暂时
                 self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
 
                 self.current_pid += 1
@@ -104,39 +110,42 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler):
         while 1:
             if e.is_set() and target:  #正常运行
                 target = False
-                self.print_status()
+                #self.print_status()
+                if(self.running_pid == -1):  # 如果当前没有进程,先调度一个进程再开始运行
+                    #print("无进程使用,启动调度算法")
+                    b=self.scheduler("no running")
                 if(self.running_pid != -1):
-                    print("运行中")
+
                     ## 向内存中要一段代码的位置 传递过去pid和程序计数器  返回一个字符串  需要提前定义好一行指令的大小
                     #if self.pcb_list[self.running_pid].pc!= len(self.pcb_list[self.running_pid].command_queue):
                     #    pass
-                elif(self.running_pid == -1):
-                    #print("无进程使用,启动调度算法")
-                    b=self.scheduler("no running")
+                    #print("当前进程下标" + str(self.loc_pid_inPool(self.running_pid)))
+                    if(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time < self.pcb_pool[self.loc_pid_inPool(self.running_pid)].last_time-1):
+                        print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行中")
+                        self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time+=1
+                    else:
+                        print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行中")
+                        self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1 #执行完最后一部分代码
+                        self.process_over()
+
             elif not e.is_set():           # 进入中断
                 e.wait()  # 正在阻塞状态,当event变为True时就激活
                 #print("一个原子时间结束,启动调度算法")
-                self.print_status()
+                #self.print_status()
                 self.scheduler("time")
                 target = True
-
-    def create_process(self):
-        a = PCB(1,
-                "cpu 5;cpu 10",
-                current_time,
-                "cpu")
-        self.pcb_pool.append(a)
-        self.ready_queue.append(a.pid)
-        #self.current_running = a.pid
-
-
 
     def print_status(self):
         print("========")
         print("current_time: " + str(current_time))
         print("current_running: " + str(self.running_pid))
         print("ready queue: " + str(self.ready_queue))
+        print("pcb_pool" + str(self.pcb_pool))
         print("========")
+
+    def process_over(self):
+        self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1
+        self.running_pid = -1 # 把当前运行的改为没有
 
 if __name__ == '__main__':
     e = Event()  # 默认False
@@ -145,5 +154,6 @@ if __name__ == '__main__':
     P = Process_Module()             # 创建manager
     P.setDaemon(True)
     P.start()                     # P作为线程开始运行
-
-    P.create_process()
+    for i in range(0,3):
+        time.sleep(1)
+        P.create_process_a("a.exe")

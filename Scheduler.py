@@ -9,8 +9,9 @@ class ProcessScheduler(Process_Utils.Process_Utils):
         self.current_time_slot_count = 0
 
     def scheduler(self, type):
-        print("Scheduler")
+        #print("Scheduler")
         if (self.schedule_type == "FCFS"):
+            #FCFS只在没有运行程序的时候才会被调度
             if(type == "no running" ):
                 self.Scheduler_FCFS()
         #后面俩还没写
