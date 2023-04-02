@@ -104,7 +104,7 @@ class PCB:
         # self.nice = 1
         # self.type = type #区分是CPU密集型还是IO型, 0代表CPU, 1代表IO
     def show_pcb(self):
-        print("在" + str(current_time) + "时刻创建了进程" + str(self.pid) + "优先级为" + str(
+        print("在" + str(current_time) + "时刻创建了进程" + str(self.pid) + ",优先级为" + str(
             self.priority) + ",pc_end=" + str(self.pc_end) +", pc= "+str(self.pc))
 
 
@@ -189,7 +189,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
                         print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行中")
                         #self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1
                     else:
-                        print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"结束")
+                        print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行结束")
                         self.process_over()     # 释放进程部分的指令
 
             elif not e.is_set():           # 进入中断
@@ -261,10 +261,11 @@ if __name__ == '__main__':
     P.setDaemon(True)
     P.start()                     # P作为线程开始运行
     ## 这里暂时把create_process当成创建进程用了
+
     for i in range(0,3):
         time.sleep(1)
         P.create_process("a.exe",1)
     time.sleep(1)
     P.create_process("b.exe",2)
     time.sleep(2)
-    P.create_process("b.exe",2)
+    P.create_process("b.exe",4)

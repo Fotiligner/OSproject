@@ -67,7 +67,12 @@ class ProcessScheduler(Process_Utils.Process_Utils):
     def Scheduler_preempting(self):
         if len(self.ready_queue) != 0:
             if(self.running_pid == -1):
-                self.running_pid = self.ready_queue[0]
+                highest_priority_pcb = self.pcb_pool[self.loc_pid_inPool(self.ready_queue[0])]
+                for i in self.ready_queue:
+                    if(self.pcb_pool[self.loc_pid_inPool(i)].priority>
+                            self.pcb_pool[self.loc_pid_inPool(highest_priority_pcb.pid)].priority):
+                        highest_priority_pcb = self.pcb_pool[self.loc_pid_inPool(i)]
+                self.running_pid = highest_priority_pcb.pid
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "running"
                 self.ready_queue.remove(self.running_pid)
             else:
