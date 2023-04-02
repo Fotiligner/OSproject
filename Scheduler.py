@@ -10,11 +10,11 @@ class ProcessScheduler(Process_Utils.Process_Utils):
 
     def scheduler(self, type):
         #print("Scheduler")
-        if (self.schedule_type == "FCFS"):
+        if (self.schedule_type == "FCFS"):   # 因为没有抢占，如果是中断的话，在那个时刻会从running转为waiting
             #FCFS只在没有运行程序的时候才会被调度
-            if(type == "no running" ):
+            if type == "no running" and len(self.ready_queue) != 0:
                 self.Scheduler_FCFS()
-        #后面俩还没写
+        # 后面俩还没写
         # 时间片轮转
         # 需要在manager里添加一个时间片计数器
         # 若时间片没有用完，进程就结束，那么立即调度就绪队列中的队首进程运行，并启动一个新的时间片。
@@ -24,7 +24,6 @@ class ProcessScheduler(Process_Utils.Process_Utils):
         # 抢占优先级 在no running 和time情况下都会被调用
         elif (self.schedule_type == "Preempting"):
             self.Scheduler_preempting()
-        return 0
 
     #FCFS算法
     def Scheduler_FCFS(self):
