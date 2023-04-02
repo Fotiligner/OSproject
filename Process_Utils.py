@@ -19,3 +19,14 @@ class Process_Utils():
             if(readypid == pid):
                 #print("返回了" + str(i))
                 return i
+    #获取当前最新可用pid的 返回两个值,是否是旧pcb 和 pid
+    def getCurrentpid(self):
+        count = 0
+        for i in self.pcb_pool:
+            print("====正在调度get,pid="+str(i.pid) + ",status="+str(i.status))
+            count+=1
+            #如果发现存在已经终止的pcb,就用这个pcb
+            if i.status == "terminated":
+                return "old",i.pid
+        #如果遍历结束发现没用可用的, 就新建一个
+        return "new",count+1

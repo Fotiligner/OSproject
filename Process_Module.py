@@ -24,7 +24,7 @@ class PCB:
         self.child_pid = child_pid
 
         self.pc = 0   # 指向当前的执行代码行数，实际上可以用逻辑地址来代替
-        self.pc_end =  0   # 结束地址
+        self.pc_end =  pc_end   # 结束地址
 
         self.status = "ready"
         self.priority = priority
@@ -47,17 +47,67 @@ class PCB:
         self.last_time = 0
 
         # 有一个问题，last time 是没有办法通过这种方式提前预知和计算的，因为要时刻从内存中进行读取
-        for command in content.split(';'):    # 将指令中所有时间都加起来，这里相加后为10
+        for command in content.split(';'):
             info = command.split( )
             info[1] = int(info[1])
             self.last_time += info[1]
             self.command_queue.append(info)
         #print(self.command_queue)
+            self.show_pcb()
 
-        print("在"+str(current_time)+"时刻创建了进程"+str(self.pid) + ", last_time: "+str(self.last_time) + "优先级为" + str(self.priority))
         # self.processor=processor
         # self.nice = 1
         # self.type = type #区分是CPU密集型还是IO型, 0代表CPU, 1代表IO
+
+    def update(self, pid, start_time, parent_pid=None,
+                 child_pid=None,
+                 already_time=None,
+                 waiting_time=None, priority=None,
+                 page_allocated=[], pc_end=None, content=""):
+        self.pid = pid
+        self.parent_pid = parent_pid
+        self.child_pid = child_pid
+
+        self.pc = 0   # 指向当前的执行代码行数，实际上可以用逻辑地址来代替
+        self.pc_end =  pc_end   # 结束地址
+
+        self.status = "ready"
+        self.priority = priority
+        self.start_time = start_time  # 进程创建的时间
+        self.waiting_time = 0    # 指进程在非运行自身的时间内经过的时间
+        self.already_time = 0    # 指在进程真正运行的时间内已经运行的时间
+        self.command_queue = []
+        self.page_allocated = 0     # 虚拟内存分配的页数
+
+
+        # self.last_time = last_time
+        # self.event = None
+        # self.content=content
+        # # todo 消息队列指针/信号量
+        # self.size=size
+        # self.next_ptr= None
+        # self.pc_time = 0
+        # self.PSW=PSW
+        # self.user_ptr=user_ptr
+        self.last_time = 0
+
+        # 有一个问题，last time 是没有办法通过这种方式提前预知和计算的，因为要时刻从内存中进行读取
+        for command in content.split(';'):
+            info = command.split( )
+            info[1] = int(info[1])
+            self.last_time += info[1]
+            self.command_queue.append(info)
+        #print(self.command_queue)
+            self.show_pcb()
+
+        # self.processor=processor
+        # self.nice = 1
+        # self.type = type #区分是CPU密集型还是IO型, 0代表CPU, 1代表IO
+    def show_pcb(self):
+        print("在" + str(current_time) + "时刻创建了进程" + str(self.pid) + "优先级为" + str(
+            self.priority) + ",pc_end=" + str(self.pc_end) +", pc= "+str(self.pc))
+
+
 
 current_time = 0   # 全局时钟
 
@@ -92,7 +142,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
 
     # def init_process_module(self):
 
-    def create_process_a(self, file_name, priority):
+    def create_process(self, file_name, priority):
         if file_name.split('.')[1] == "exe": # 判断是否为可执行文件
             # 注意，创建进程的时候，是使用生产者消费者模型的，这里要调用内存模块的接口
             # 需要内存返回首地址,内存模块负责将file_name 传递给文件模块，然后回传
@@ -105,16 +155,22 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
 
             success = True
             if success: # 内存分配成功
-                self.pcb_pool.append(PCB(pid=self.current_pid, parent_pid=-1, \
-                                         child_pid=-1, priority=priority, start_time=current_time, \
-                                         page_allocated=[], pc_end=5 , content = "cpu 1;output printer hello 5"))   # 暂时
-                self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
-
-                self.current_pid += 1
+                type, self.current_pid = self.getCurrentpid()
+                if(type == "new"): #如果是个新PCB,也就是老PCB都没有终止
+                    self.pcb_pool.append(PCB(self.current_pid, parent_pid=-1, \
+                                             child_pid=-1, priority=priority, start_time=current_time, \
+                                             page_allocated=[], pc_end=4 , content = "cpu 1;cpu 1"))   # 暂时
+                    self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
+                elif(type == "old"):
+                    self.pcb_pool[self.loc_pid_inPool(self.current_pid)].update(self.current_pid, parent_pid=-1, \
+                                             child_pid=-1, priority=priority, start_time=current_time, \
+                                             page_allocated=[], pc_end=4 , content = "cpu 1;cpu 1")
+                    self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
             else: # 内存分配不成功
                 pass
         else:
             print(f"[error] {file_name} is not an executable file")
+
 
 
     def run(self):  # 模拟进程调度程序,run是threading.Thread中的重载函数
@@ -124,26 +180,16 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
                 target = False
                 #self.print_status()
                 if(self.running_pid == -1):  # 如果当前没有进程,先调度一个进程再开始运行
-                    #print("无进程使用,启动调度算法")
                     self.scheduler("no running")
                 if(self.running_pid != -1):
-
                     ## 向内存中要一段代码的位置 传递过去pid和程序计数器pc  返回一个字符串  需要提前定义好一行指令的大小
-                    #if self.pcb_list[self.running_pid].pc!= len(self.pcb_list[self.running_pid].command_queue):
-                    #    pass
-                    #print("当前进程下标" + str(self.loc_pid_inPool(self.running_pid)))
-                    # 假设已经获得了一行指令，存在command字符串中
-
-                    command = "output printer hello 5"   # 从内存中获得的file
+                    command = "cpu 5"   # 从内存中获得的file 4.2 暂时修改了下
                     self.command_running(command.split())
-
-
-                    if(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc < self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc_end):
+                    if(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc <= self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc_end):
                         print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行中")
-                        self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1
+                        #self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1
                     else:
-                        print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行中")
-                        self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1 #执行完最后一部分代码
+                        print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"结束")
                         self.process_over()     # 释放进程部分的指令
 
             elif not e.is_set():           # 进入中断
@@ -152,14 +198,11 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
                 self.scheduler("time")  # 进程抢占在这里完成
                 target = True
 
-    # def command_running(self):    # 执行具体指令
-
     def io_interrupt(self, type):
         print("产生" + type + "中断")
         self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "waiting"   # 更改PCB状态
         self.waiting_queue.append(self.running_pid)   # 更改waiting队列状态
         self.running_pid = -1   # 将当前的running 进程取消状态，便于之后scheduler
-
     def command_running(self, command):
         if command[0] == "cpu":   # 普通cpu时间，理论上只可能是cpu 1
             self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1  # 进程进度加一（already_time）
@@ -171,35 +214,44 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
 
             self.io_module.add_request(source_pid=self.running_pid, target_device=command[1], IO_time=command[3], content=command[2],\
                                        priority_num=1, is_disk=False, file_path=None, rw_state=None)
-
             self.io_interrupt("device_io")
         elif command[0] == "access":
             pass
         elif command[0] == "read" or command[0] == "write":
             pass
-
-
-
-
-
-
-
-
-
-
-
     def print_status(self):
         print("========")
         print("current_time: " + str(current_time))
         print("current_running: " + str(self.running_pid))
         print("ready queue: " + str(self.ready_queue))
-        print("pcb_pool" + str(self.pcb_pool))
+        print("pcb_pool: [",end='')
+        for i in self.pcb_pool:
+            print(i.pid,end=' ')
+        print("]")
         print("========")
-
+    ## 进程正常终止的函数 应该不存在设备队列的问题所以没有释放设备
     def process_over(self):
-        self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1
-        self.running_pid = -1 # 把当前运行的改为没有
-        ## 释放内存
+        if self.running_pid in self.ready_queue:
+            self.ready_queue.remove(self.running_pid)
+        if self.running_pid in self.waiting_queue:
+            self.waiting_queue.remove(self.running_pid)
+        ## 释放内存 大概只要传过去self.running_pid就可以
+
+        ## 遍历当前进程的所有子进程并把子进程的父进程改成init进程
+        self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "terminated" #把当前进程改成中止
+        self.running_pid = -1  # 把当前运行的改为没有
+
+    ## 使用kill命令终止的函数 感觉其实也没有太多变化
+    def kill_process(self,pid):
+        if pid in self.ready_queue:
+            self.ready_queue.remove(pid)
+        if pid in self.waiting_queue:
+            self.waiting_queue.remove(pid)
+        ## 释放内存 大概只要传过去self.running_pid就可以
+        ## 释放进程队列  大概只要传过去self.running_pid就可以
+        self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "terminated" #把当前进程改成中止
+        ## 遍历当前进程的所有子进程并把子进程的父进程改成init进程
+        self.running_pid = -1  # 把当前运行的改为没有
 
 if __name__ == '__main__':
     e = Event()  # 默认False
@@ -211,7 +263,8 @@ if __name__ == '__main__':
     ## 这里暂时把create_process当成创建进程用了
     for i in range(0,3):
         time.sleep(1)
-        P.create_process_a("a.exe",1)
-
+        P.create_process("a.exe",1)
     time.sleep(1)
-    P.create_process_a("b.exe",2)
+    P.create_process("b.exe",2)
+    time.sleep(2)
+    P.create_process("b.exe",2)

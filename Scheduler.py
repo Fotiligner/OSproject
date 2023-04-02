@@ -2,7 +2,7 @@ import Process_Utils
 #专门负责进程调度的类
 class ProcessScheduler(Process_Utils.Process_Utils):
     def __init__(self):
-        self.schedule_type="Preempting"
+        self.schedule_type="FCFS"
         self.ready_queue = []
         self.waiting_queue = []
         self.time_slot = 3        #代表时间片为三个单位时间
@@ -38,20 +38,32 @@ class ProcessScheduler(Process_Utils.Process_Utils):
             return -1
 
     ##  等七哥写
-    def Scheduler_RR(self, time_slice):
+    ##  等七哥写
+    def Scheduler_RR(self):
+        #print("发生RR")
         if len(self.ready_queue) != 0:
             self.running_pid = self.ready_queue[0]
             self.pcb_pool[self.running_pid].status = "running"
-            if self.pcb_pool[self.running_pid].last_time <= time_slice:
+
+            #self.pcb_pool[self.running_pid].already_time += 1
+
+            #print(self.pcb_pool[self.running_pid].already_time)
+            #print(self.pcb_pool[self.running_pid].last_time)
+
+            if(self.pcb_pool[self.running_pid].already_time < self.pcb_pool[self.running_pid].last_time):
+                if ((self.pcb_pool[self.running_pid].already_time+1) % self.time_slot == 0 ) :
+                    self.ready_queue.remove(self.running_pid)
+                    self.ready_queue.append(self.running_pid)
+                    return self.running_pid
+            if((self.pcb_pool[self.running_pid].already_time+1) >= self.pcb_pool[self.running_pid].last_time):
+                #print("asdasd")
                 self.ready_queue.remove(self.running_pid)
                 return self.running_pid
-            else:
-                self.pcb_pool[self.running_pid].last_time = self.pcb_pool[self.running_pid].last_time - time_slice
-                self.ready_queue.remove(self.running_pid)
-                self.ready_queue.append(self.running_pid)
-                return self.running_pid
+
+            #return self.running_pid
         else:
             return -1
+
 
     ##抢占优先级算法
     def Scheduler_preempting(self):
@@ -70,7 +82,7 @@ class ProcessScheduler(Process_Utils.Process_Utils):
                 #print("存在"+str(highest_priority_pcb))
                 #如果等待队列里最高优先级的大于正在运行的优先级
                 if(highest_priority_pcb.priority > self.pcb_pool[self.loc_pid_inPool(self.running_pid)].priority):
-                    print("发生抢占 highest_priority_pcb.priority:"+ str(highest_priority_pcb.priority) + "running:" + str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].priority))
+                    print("发生抢占 此时ready里最高的优先级:"+ str(highest_priority_pcb.priority) + " 正在运行的优先级:" + str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].priority))
                     #保存现场 塞到ready队列队尾
                     self.ready_queue.append(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)
                     self.running_pid = highest_priority_pcb.pid
