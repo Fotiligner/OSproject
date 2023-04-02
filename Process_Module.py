@@ -47,7 +47,7 @@ class PCB:
             self.command_queue.append(info)
         #print(self.command_queue)
 
-        print("在"+str(current_time)+"时刻创建了进程"+str(self.pid) + ", last_time: "+str(self.last_time))
+        print("在"+str(current_time)+"时刻创建了进程"+str(self.pid) + ", last_time: "+str(self.last_time) + "优先级为" + str(self.priority))
         # self.processor=processor
         # self.nice = 1
         # self.type = type #区分是CPU密集型还是IO型, 0代表CPU, 1代表IO
@@ -83,7 +83,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
 
     # def init_process_module(self):
 
-    def create_process_a(self, file_name):
+    def create_process_a(self, file_name, priority):
         if file_name.split('.')[1] == "exe": # 判断是否为可执行文件
             # 注意，创建进程的时候，是使用生产者消费者模型的，这里要调用内存模块的接口
             # 需要内存返回首地址,内存模块负责将file_name 传递给文件模块，然后回传
@@ -94,7 +94,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
             success = True
             if success: # 内存分配成功
                 self.pcb_pool.append(PCB(pid=self.current_pid, parent_pid=-1, \
-                                         child_pid=-1, priority=1, start_time=current_time, \
+                                         child_pid=-1, priority=priority, start_time=current_time, \
                                          page_allocated=[], pc_end=5 , content = "cpu 5;cpu 5"))   # 暂时
                 self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
 
@@ -156,4 +156,7 @@ if __name__ == '__main__':
     P.start()                     # P作为线程开始运行
     for i in range(0,3):
         time.sleep(1)
-        P.create_process_a("a.exe")
+        P.create_process_a("a.exe",1)
+
+    time.sleep(1)
+    P.create_process_a("a.exe",2)
