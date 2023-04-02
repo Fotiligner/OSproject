@@ -14,7 +14,7 @@ class Process_Utils():
     #传入pid, 返回在ready_queue里的下标
     def loc_pid_inReady(self,pid):
         i=-1
-        for readypid in self.ready_queue:
+        for readypid in self.ready_queue:    # 继承，可使用子类的属性
             i+=1
             if(readypid == pid):
                 #print("返回了" + str(i))
