@@ -4,6 +4,9 @@ import time
 import random
 import Scheduler
 import Process_Utils
+import copy
+
+
 
 from IO_Module import IO_Module
 
@@ -76,7 +79,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
         self.pcb_pool = []   # 整体pcb池，存储所有pcb
         self.running_pid = -1
         self.current_pid = 0   # 计数，指向当前pcb_pool的最大进程编号
-
+        #这两个需要移到Scheduler里
         #self.schedule_type = args.schedule_type   # "multi_feedback_queue"  "single_queue"
         #self.schedule_algorithm = args.schedule_algorithm  # 仅在single_queue下生效
 
@@ -131,7 +134,6 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
             elif not e.is_set():           # 进入中断
                 e.wait()  # 正在阻塞状态,当event变为True时就激活
                 #print("一个原子时间结束,启动调度算法")
-                #self.print_status()
                 self.scheduler("time")
                 target = True
 
@@ -146,6 +148,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
     def process_over(self):
         self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1
         self.running_pid = -1 # 把当前运行的改为没有
+        ## 释放内存
 
 if __name__ == '__main__':
     e = Event()  # 默认False
@@ -154,9 +157,10 @@ if __name__ == '__main__':
     P = Process_Module()             # 创建manager
     P.setDaemon(True)
     P.start()                     # P作为线程开始运行
+    ## 这里暂时把create_process当成创建进程用了
     for i in range(0,3):
         time.sleep(1)
         P.create_process_a("a.exe",1)
 
     time.sleep(1)
-    P.create_process_a("a.exe",2)
+    P.create_process_a("b.exe",2)

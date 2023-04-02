@@ -5,7 +5,7 @@ class ProcessScheduler(Process_Utils.Process_Utils):
         self.schedule_type="Preempting"
         self.ready_queue = []
         self.waiting_queue = []
-        self.time_slot = 3  #代表时间片为三个单位时间
+        self.time_slot = 3        #代表时间片为三个单位时间
         self.current_time_slot_count = 0
 
     def scheduler(self, type):
@@ -21,11 +21,12 @@ class ProcessScheduler(Process_Utils.Process_Utils):
         elif (self.schedule_type == "RR"):
             self.Scheduler_RR()
 
-        # 抢占优先级
+        # 抢占优先级 在no running 和time情况下都会被调用
         elif (self.schedule_type == "Preempting"):
             self.Scheduler_preempting()
         return 0
 
+    #FCFS算法
     def Scheduler_FCFS(self):
         print("正在使用FCFS")
         if len(self.ready_queue) != 0:
@@ -37,7 +38,7 @@ class ProcessScheduler(Process_Utils.Process_Utils):
         else:
             return -1
 
-    #   self.start_time = start_time
+    ##  等七哥写
     def Scheduler_RR(self, time_slice):
         if len(self.ready_queue) != 0:
             self.running_pid = self.ready_queue[0]
@@ -53,8 +54,8 @@ class ProcessScheduler(Process_Utils.Process_Utils):
         else:
             return -1
 
+    ##抢占优先级算法
     def Scheduler_preempting(self):
-        #print("正在使P")
         if len(self.ready_queue) != 0:
             if(self.running_pid == -1):
                 self.running_pid = self.ready_queue[0]
@@ -71,7 +72,7 @@ class ProcessScheduler(Process_Utils.Process_Utils):
                 #如果等待队列里最高优先级的大于正在运行的优先级
                 if(highest_priority_pcb.priority > self.pcb_pool[self.loc_pid_inPool(self.running_pid)].priority):
                     print("发生抢占 highest_priority_pcb.priority:"+ str(highest_priority_pcb.priority) + "running:" + str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].priority))
-                    #保存现场
+                    #保存现场 塞到ready队列队尾
                     self.ready_queue.append(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)
                     self.running_pid = highest_priority_pcb.pid
                     self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "running"
