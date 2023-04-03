@@ -38,29 +38,24 @@ class ProcessScheduler(Process_Utils.Process_Utils):
     ##  等七哥写
     ##  等七哥写
     def Scheduler_RR(self):
-        #print("发生RR")
-        if len(self.ready_queue) != 0:
-            self.running_pid = self.ready_queue[0]
-            self.pcb_pool[self.running_pid].status = "running"
+        # 某一个进程提前结束的情况
+        if(self.running_pid == -1):
+            self.current_time_slot_count = -1
+            if len(self.ready_queue) != 0:
+                self.swap()
+        # 正常时钟中断
+        if(self.running_pid != -1):
+            self.current_time_slot_count += 1  # 计数器累加
+            # 一个时间片用完
+            if(self.current_time_slot_count == self.time_slot):
+                self.current_time_slot_count = 0
+                self.swap()
 
-            #self.pcb_pool[self.running_pid].already_time += 1
-
-            #print(self.pcb_pool[self.running_pid].already_time)
-            #print(self.pcb_pool[self.running_pid].last_time)
-
-            if(self.pcb_pool[self.running_pid].already_time < self.pcb_pool[self.running_pid].last_time):
-                if ((self.pcb_pool[self.running_pid].already_time+1) % self.time_slot == 0 ) :
-                    self.ready_queue.remove(self.running_pid)
-                    self.ready_queue.append(self.running_pid)
-                    return self.running_pid
-            if((self.pcb_pool[self.running_pid].already_time+1) >= self.pcb_pool[self.running_pid].last_time):
-                #print("asdasd")
-                self.ready_queue.remove(self.running_pid)
-                return self.running_pid
-
-            #return self.running_pid
-        else:
-            return -1
+    def swap(self):
+        if self.running_pid != -1:
+            self.ready_queue.append(self.running_pid)
+        self.running_pid = self.ready_queue[0]
+        self.ready_queue.remove(self.running_pid)
 
 
     ##抢占优先级算法
