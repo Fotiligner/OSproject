@@ -247,8 +247,8 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
             self.ready_queue.remove(pid)
         if pid in self.waiting_queue:
             self.waiting_queue.remove(pid)
-        ## 释放内存 大概只要传过去self.running_pid就可以
-        ## 释放进程队列  大概只要传过去self.running_pid就可以
+        ## 释放内存 大概只要传过去pid就可以
+        ## 释放进程队列  大概只要传过去pid就可以
         self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "terminated" #把当前进程改成中止
         ## 遍历当前进程的所有子进程并把子进程的父进程改成init进程
         self.running_pid = -1  # 把当前运行的改为没有
@@ -261,11 +261,18 @@ if __name__ == '__main__':
     P.setDaemon(True)
     P.start()                     # P作为线程开始运行
     ## 这里暂时把create_process当成创建进程用了
+    target = True
+    while 1:
 
-    for i in range(0,3):
-        time.sleep(1)
-        P.create_process("a.exe",1)
-    time.sleep(1)
-    P.create_process("b.exe",2)
-    time.sleep(2)
-    P.create_process("b.exe",4)
+        if e.is_set() and target:
+            target = False
+            if current_time in [2,4,8,16]: #创建1优先级的进程
+                P.create_process("a.exe",1)
+                continue
+            if current_time in [6,32]:
+                P.create_process("a.exe", 2) #创建2优先级的进程
+                continue
+            if current_time >40:
+                break
+        elif not e.is_set():
+            target=True
