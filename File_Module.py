@@ -45,20 +45,20 @@ class Disk:
             f.seek(loc * self.blk_size)
             return f.read(self.blk_size)
 
-    def read_blk2end(self, loc):
-        buf = self.read_block(loc)
-        while buf.count('\0') == 0:
-            loc = loc + 1
-            buf = buf + self.read_block(loc)
-        return buf
-
-    def write_blk2end(self,loc,buf):
-        size=len(buf)
-        while size>0:
-            self.write_block(loc,buf)
-            loc=loc+1
-            buf=buf[self.blk_size:]
-            size=size-self.blk_size
+    # def read_blk2end(self, loc):
+    #     buf = self.read_block(loc)
+    #     while buf.count('\0') == 0:
+    #         loc = loc + 1
+    #         buf = buf + self.read_block(loc)
+    #     return buf
+    #
+    # def write_blk2end(self,loc,buf):
+    #     size=len(buf)
+    #     while size>0:
+    #         self.write_block(loc,buf)
+    #         loc=loc+1
+    #         buf=buf[self.blk_size:]
+    #         size=size-self.blk_size
 
 
 
@@ -109,20 +109,25 @@ class Disk:
     def disk_alloc(self, num):
         '''
         todo:
-        不同算法
         :param num:
         :return:
         '''
-        target = '0' * num
-        loc = self.bitmap.find(target)
-        if loc != -1:
-            self.bitmap = self.bitmap.replace(target, '1' * num, 1)
-        print('loc:%d'%loc)
-        with open(self.file_path,'r+') as f:
-            f.seek((self.data_base+loc)*self.blk_size)
-            f.write('\0')
-        return loc
-
+        addr=[]
+        bitmap=list(self.bitmap)
+        for i in range(self.data_blk_num):
+            if bitmap[i] == '0':
+                addr.append(i)
+                if len(addr) >= num:
+                    break
+        if len(addr) >= num:
+            for i in range(len(addr)):
+                bitmap[addr[i]]='1'
+                self.bitmap=''.join(bitmap)
+                if i == len(addr)-1:
+                    self.write_block(self.data_base+addr[i],'\0')
+        else:
+            addr=[]
+        return addr
 
 
 class Dir:
@@ -173,8 +178,10 @@ class FileSystem:
                     now_dir.childs.append(new_dir)
                     dir_queue.append(new_dir)
                 else:  # 文件
-                    disk_loc = int(nodes[index + 1])
-                    size = int(nodes[index + 2])
+                    disk_loc = []
+                    size = int(nodes[index + 1])
+                    for i in range(int(size / self.disk.blk_size) + 1):
+                        disk_loc.append(int(nodes[index+2+i]))
                     auth = nodes[index + 3]
                     new_fcb = FCB(name, disk_loc, size, auth)
                     new_fcb.parent = now_dir
@@ -193,8 +200,9 @@ class FileSystem:
                     buf = buf + c.name + ' d '
                 else:
                     buf = buf + c.name + ' f '
-                    buf = buf + str(c.disk_loc) + ' '
                     buf = buf + str(c.size) + ' '
+                    for i in range(int(c.size/self.disk.blk_size)+1):
+                        buf = buf + str(c.disk_loc[i])+' '
                     buf = buf + c.auth + ' '
             buf = buf + ' \0 '
         dir_base = self.disk.dir_base
@@ -203,8 +211,8 @@ class FileSystem:
             f.seek(dir_base * blk_size)
             f.write(buf)
 
-    def make_fcb(self, name, disk_loc, size, auth):
-        new_fcb = FCB(name, disk_loc, size, auth)
+    def make_fcb(self, name, disk_addr, size, auth):
+        new_fcb = FCB(name, disk_addr, size, auth)
         new_fcb.parent = self.work_dir
         self.work_dir.childs.append(new_fcb)
 
@@ -212,6 +220,22 @@ class FileSystem:
         new_dir = Dir(name)
         new_dir.parent = self.work_dir
         self.work_dir.childs.append(new_dir)
+
+    def read_file(self,fcb):
+        buf=''
+        for i in fcb.disk_loc:
+            buf=buf+self.disk.read_block(self.disk.data_base+i)
+        return buf
+
+    def write_file(self,fcb,buf):
+        size=len(buf)
+        new_blk_num=int(size/self.disk.blk_size)+1
+        if new_blk_num > fcb.blk_num:
+            fcb.disk_loc.extend(self.disk.disk_alloc(new_blk_num-fcb.blk_num))
+            fcb.blk_num=new_blk_num
+        for i in range(fcb.blk_num):
+            self.disk.write_block(self.disk.data_base+fcb.disk_loc[i],buf)
+            buf = buf[self.blk_size:]
 
     def find_node(self, path):
         '''
@@ -245,10 +269,9 @@ class FileSystem:
         '''
         self.make_dir(name)
 
-    def touch(self, name, size=300, auth='wrx'):
+    def touch(self, name, size=0, auth='wrx'):
         disk_loc = self.disk.disk_alloc(int(size / self.disk.blk_size) + 1)
-        print('disk_loc:%d'%disk_loc)
-        if disk_loc != -1:
+        if len(disk_loc) != -1:
             self.make_fcb(name, disk_loc, size, auth)
 
     def cd(self, dir_name):
@@ -301,7 +324,6 @@ class FileSystem:
 
 if __name__ == '__main__':
     file_system = FileSystem(disk_path)
-    # file_system.disk.init_disk()
     file_system.read_dir_tree()
     active = True
     while active:
@@ -332,5 +354,8 @@ if __name__ == '__main__':
             file_system.write_dir_tree()
         elif cmd[0] == 'vi':
             file_system.vi(cmd[1])
+        elif cmd[0] == 'init':
+            file_system.disk.init_disk()
+            file_system.read_dir_tree()
         else:
             print('no such command')
