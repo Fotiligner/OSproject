@@ -34,6 +34,7 @@ class PCB:
         self.command_queue = []
         self.page_allocated = 0     # 虚拟内存分配的页数
 
+        self.command_already_time = 0
 
         # self.last_time = last_time
         # self.event = None
@@ -159,18 +160,18 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
                 if(type == "new"): #如果是个新PCB,也就是老PCB都没有终止
                     self.pcb_pool.append(PCB(self.current_pid, parent_pid=-1, \
                                              child_pid=-1, priority=priority, start_time=current_time, \
-                                             page_allocated=[], pc_end=4 , content = "cpu 1;cpu 1"))   # 暂时
+                                             page_allocated=[], pc_end=1 , content = "cpu 2;cpu 3"))   # 暂时
                     self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
                 elif(type == "old"):
                     self.pcb_pool[self.loc_pid_inPool(self.current_pid)].update(self.current_pid, parent_pid=-1, \
                                              child_pid=-1, priority=priority, start_time=current_time, \
-                                             page_allocated=[], pc_end=4 , content = "cpu 1;cpu 1")
+                                             page_allocated=[], pc_end=1 , content = "cpu 2;cpu 3")
                     self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
             else: # 内存分配不成功
+                # 处理缺页中断，可以用普通中断的方式来实现
                 pass
         else:
             print(f"[error] {file_name} is not an executable file")
-
 
 
     def run(self):  # 模拟进程调度程序,run是threading.Thread中的重载函数
@@ -183,8 +184,8 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
                     self.scheduler("no running")
                 if(self.running_pid != -1):
                     ## 向内存中要一段代码的位置 传递过去pid和程序计数器pc  返回一个字符串  需要提前定义好一行指令的大小
-                    command = "cpu 5"   # 从内存中获得的file 4.2 暂时修改了下
-                    self.command_running(command.split())
+                    command = self.pcb_pool[self.loc_pid_inPool(self.running_pid)].command_queue[self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc]   # 从内存中获得的file 4.2 暂时修改了下
+                    self.command_running(command)
                     if(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc <= self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc_end):
                         print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行中")
                         #self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1
@@ -205,8 +206,13 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
         self.running_pid = -1   # 将当前的running 进程取消状态，便于之后scheduler
     def command_running(self, command):
         if command[0] == "cpu":   # 普通cpu时间，理论上只可能是cpu 1
+            time = int(command[1])
             self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1  # 进程进度加一（already_time）
-            self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1   # 指令行数增加，指向下一条指令
+            self.pcb_pool[self.loc_pid_inPool(self.running_pid)].command_already_time += 1   # 针对cpu指令完成时间的测试
+
+            if self.pcb_pool[self.loc_pid_inPool(self.running_pid)].command_already_time == time:
+                self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1   # 指令行数增加，指向下一条指令
+                self.pcb_pool[self.loc_pid_inPool(self.running_pid)].command_already_time = 0
             return
         elif command[0] == "output" or command[0] == "input":  # output + device_name + content + time
             self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1
@@ -217,8 +223,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
             self.io_interrupt("device_io")
         elif command[0] == "access":
             pass
-        elif command[0] == "read" or command[0] == "write":
-            pass
+
     def print_status(self):
         print("========")
         print("current_time: " + str(current_time))
@@ -262,14 +267,15 @@ if __name__ == '__main__':
     P.start()                     # P作为线程开始运行
     ## 这里暂时把create_process当成创建进程用了
     target = True
+
     while 1:
 
         if e.is_set() and target:
             target = False
-            if current_time in [2,4,8,16]: #创建1优先级的进程
+            if current_time in [2,8]: #创建1优先级的进程
                 P.create_process("a.exe",1)
                 continue
-            if current_time in [6,32]:
+            if current_time in [6]:
                 P.create_process("a.exe", 2) #创建2优先级的进程
                 continue
             if current_time >40:
