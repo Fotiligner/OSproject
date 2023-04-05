@@ -1,4 +1,5 @@
-import msvcrt, os, sys
+import msvcrt
+import os
 import prettytable
 from enum import Enum
 
@@ -10,13 +11,11 @@ class Ret_State(Enum):
     Error_File_Exist = 1
     Error_File_Not_Exist = 2
     Error_Dir_Exist = 3
-    Error_Path_Not_Exist = 4
+    Error_Dir_Not_Exist = 4
+    Error_Path_Not_Exist = 5
 
 
 class Disk:
-    '''
-    todo:
-    '''
     file_path = None
     track_tot_num = 100
     sector_per_track = 10
@@ -29,8 +28,8 @@ class Disk:
     dir_blk_num = 120  # 目录区
     data_base = dir_base + dir_blk_num
     data_blk_num = blk_tot_num - super_blk_num - dir_blk_num
-    # 位图是针对数据区的
-    bitmap = '0' * data_blk_num  # 0表示free,1表示占用
+
+    bitmap = '0' * data_blk_num  # 位图是针对数据区的。0表示free,1表示占用
 
     def __init__(self, file_path):
         self.file_path = file_path
@@ -111,11 +110,10 @@ class Disk:
         self.blk_free_num = self.blk_tot_num
 
     def disk_alloc(self, num):
-        '''
-        todo:
+        """
         :param num:
         :return:
-        '''
+        """
         addr = []
         bitmap = list(self.bitmap)
         for i in range(self.data_blk_num):
@@ -127,6 +125,7 @@ class Disk:
             for i in range(len(addr)):
                 bitmap[addr[i]] = '1'
                 self.bitmap = ''.join(bitmap)
+                self.write_super_blk()
         else:
             addr = []
         return addr
@@ -158,6 +157,7 @@ class File_Module:
     def __init__(self, file_path):
         self.disk = Disk(file_path)
         # self.disk.init_disk()
+        # self.disk.write_super_blk()
         self.read_dir_tree()
 
     def read_dir_tree(self):
@@ -221,12 +221,38 @@ class File_Module:
         new_fcb = FCB(name, disk_addr, size, auth)
         new_fcb.parent = self.work_dir
         self.work_dir.childs.append(new_fcb)
+        self.write_dir_tree()
         return new_fcb
+
+    def del_fcb(self, file_node):
+        bitmap = list(self.disk.bitmap)
+        for loc in file_node.disk_loc:
+            bitmap[loc] = '0'
+        self.disk.bitmap = ''.join(bitmap)
+        self.disk.write_super_blk()
+        del file_node
+
+    def get_fcb(self, file_name):
+        file_node = None
+        for c in self.work_dir:
+            if isinstance(c, Dir) and c.name == file_name:
+                file_node = c
+        return file_node
 
     def make_dir(self, name):
         new_dir = Dir(name)
         new_dir.parent = self.work_dir
         self.work_dir.childs.append(new_dir)
+        self.write_dir_tree()
+
+    def del_dir(self, dir_node: Dir):
+        for c in dir_node.childs:
+            if isinstance(c, Dir):
+                self.del_dir(c)
+            else:
+                self.del_fcb(c)
+        del dir_node
+        self.write_dir_tree()
 
     def read_file(self, fcb):
         buf = ''
@@ -251,12 +277,12 @@ class File_Module:
             buf = buf[self.disk.blk_size:]
 
     def find_node(self, path):
-        '''
+        """
         返回路径所需结点
         :param path: 文件路径
         :return: 存在则返回节点，不存在则返回None
-        '''
-        nodes = path.split('\\')
+        """
+        nodes = path.split('/')
         now_dir = self.root_dir
         last_node = self.root_dir
         for i in range(1, len(nodes)):
@@ -274,17 +300,16 @@ class File_Module:
         return last_node
 
     def mkdir(self, name):
-        '''
+        """
         todo:
         对于是否能够创建目录的异常检测，即目录区是否足够
         :param name:
         :return:
-        '''
+        """
         for c in self.work_dir.childs:
             if isinstance(c, Dir) and c.name == name:
                 return Ret_State.Error_Dir_Exist
         self.make_dir(name)
-        self.write_dir_tree()
         return Ret_State.Success
 
     def touch(self, name, size=0, auth='wrx'):
@@ -296,7 +321,6 @@ class File_Module:
         if len(disk_loc) != -1:
             fcb = self.make_fcb(name, disk_loc, size, auth)
         self.write_file(fcb, '')  # 添加文件结束符，以免这个块是脏的
-        self.write_dir_tree()
         return Ret_State.Success
 
     def cd(self, dir_name):
@@ -364,14 +388,31 @@ class File_Module:
         self.write_dir_tree()
         return Ret_State.Success
 
-    def rm(self, name, mode):
-        pass
+    def rm(self, name, mode=None):
+        target_node = None
+        if mode and mode.count('r') != 0:
+            for c in self.work_dir.childs:
+                if isinstance(c, Dir) and c.name == name:
+                    target_node = c
+            if not target_node:
+                return Ret_State.Error_Dir_Not_Exist
+            else:
+                self.del_dir(target_node)
+        else:
+            for c in self.work_dir.childs:
+                if isinstance(c, FCB) and c.name == name:
+                    target_node = c
+            if not target_node:
+                return Ret_State.Error_File_Not_Exist
+            else:
+                self.del_fcb(target_node)
+        self.work_dir.childs.remove(target_node)
+        self.write_dir_tree()
+        return Ret_State.Success
 
 
 if __name__ == '__main__':
     file_system = File_Module(disk_path)
-    # file_system.disk.init_disk()
-    file_system.read_dir_tree()
     active = True
     while active:
         cmds = input(file_system.work_path + ':')
@@ -404,8 +445,14 @@ if __name__ == '__main__':
             file_system.vi(cmd[1])
         elif cmd[0] == 'init':
             file_system.disk.init_disk()
+            file_system.disk.write_super_blk()
+            file_system.del_dir(file_system.root_dir)
+            file_system.root_dir = Dir('~')
+            file_system.work_path = '~'
             file_system.read_dir_tree()
         elif cmd[0] == 'rdt':
             file_system.read_dir_tree()
+        elif cmd[0] == 'rm':
+            file_system.rm(mode=cmd[1], name=cmd[2])
         else:
             print('no such command')
