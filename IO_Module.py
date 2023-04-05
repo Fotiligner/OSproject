@@ -15,13 +15,14 @@ class IO_Module:
         self.init_device(device_filename)
 
     def add_request(self, **args):
+        print(args)
         request = Request(args)
 
         # 后期考虑死锁
         # 分配当前空闲的第一台设备
 
         if request.is_disk == 0:   # 设备IO请求
-            for i, busy_state in self.device_table[request.target_device].is_busy:
+            for i, busy_state in enumerate(self.device_table[request.target_device].is_busy):
                 if busy_state == 0:    # 空闲状态
                     request.target_device_count = i
                     break
@@ -92,8 +93,8 @@ class IO_Module:
                         device.is_busy[request.target_device_count] = 0  # 重新置为空闲
 
     def IO_run(self):   # 整体轮询遍历函数
-        self.disk_io_run()
-        self.device_io_run()
+        #self.disk_io_run()
+        return self.device_io_run()
 
 class Device:
     def __init__(self, device_type, device_count):
@@ -104,7 +105,7 @@ class Device:
 
 
 class Request:
-    def __init__(self, **args):
+    def __init__(self, args):
         self.source_pid = args["source_pid"]
         self.target_device = args["target_device"]
         self.target_device_count = -1   # 用于表示当前是否有设备接受该请求的工作，若没有则

@@ -35,6 +35,7 @@ class PCB:
         self.page_allocated = 0     # 虚拟内存分配的页数
 
         self.command_already_time = 0
+        self.final_time = 0
 
         # self.last_time = last_time
         # self.event = None
@@ -50,8 +51,8 @@ class PCB:
         # 有一个问题，last time 是没有办法通过这种方式提前预知和计算的，因为要时刻从内存中进行读取
         for command in content.split(';'):
             info = command.split( )
-            info[1] = int(info[1])
-            self.last_time += info[1]
+            info[-1] = int(info[-1])
+            self.last_time += info[-1]
             self.command_queue.append(info)
         #print(self.command_queue)
         self.show_pcb()
@@ -160,7 +161,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
                 if(type == "new"): #如果是个新PCB,也就是老PCB都没有终止
                     self.pcb_pool.append(PCB(self.current_pid, parent_pid=-1, \
                                              child_pid=-1, priority=priority, start_time=current_time, \
-                                             page_allocated=[], pc_end=1 , content = "cpu 2;cpu 3"))   # 暂时
+                                             page_allocated=[], pc_end=2 , content = "cpu 2;output printer asdfasdf 3;cpu 3"))   # 暂时
                     self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
                 elif(type == "old"):
                     self.pcb_pool[self.loc_pid_inPool(self.current_pid)].update(self.current_pid, parent_pid=-1, \
@@ -186,12 +187,37 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
                     ## 向内存中要一段代码的位置 传递过去pid和程序计数器pc  返回一个字符串  需要提前定义好一行指令的大小
                     command = self.pcb_pool[self.loc_pid_inPool(self.running_pid)].command_queue[self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc]   # 从内存中获得的file 4.2 暂时修改了下
                     self.command_running(command)
-                    if(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc <= self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc_end):
-                        print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行中")
-                        #self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1
+
+                # 注意，不可以在io中断的时候更新pc，不然这里就会直接释放进程，顺序问题一定要搞清楚
+                # io遍历和io进程的问题
+
+                device_output = self.io_module.IO_run()
+                if len(device_output) > 0:
+                    print(device_output)
+
+                for return_dict in device_output:   # 当前时刻返回的device信息，用来指示已完成IO的进程信息以及传输的数据
+                    print("在" + str(current_time) + "时刻" + "进程" + str(
+                        self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pid) + "完成IO")
+                    self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].pc += 1
+                    if(self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].pc <= self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].pc_end):
+                        self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].status = "ready"
+                        self.ready_queue.append(return_dict['pid'])   # 完成io的程序从waiting到ready
+                        self.waiting_queue.remove(return_dict['pid'])
                     else:
-                        print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行结束")
-                        self.process_over()     # 释放进程部分的指令
+                        print("在" + str(current_time) + "时刻" + "进程" + str(
+                            self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pid) + "运行结束")
+                        self.waiting_queue.remove(return_dict['pid'])
+                        self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].final_time = current_time
+                        self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].status = "terminated" #把当前进程改成中止
+
+                # 因为中断会将running_pid设为-1，因此首先判断running pid是否为-1
+                if(self.running_pid != -1 and self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc <= self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc_end):
+                    print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行中")
+                    #self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1
+                elif self.running_pid != -1:
+                    print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行结束")
+                    self.pcb_pool[self.loc_pid_inPool(self.running_pid)].final_time = current_time
+                    self.process_over()     # 释放进程部分的指令
 
             elif not e.is_set():           # 进入中断
                 e.wait()  # 正在阻塞状态,当event变为True时就激活
@@ -216,12 +242,15 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
             return
         elif command[0] == "output" or command[0] == "input":  # output + device_name + content + time
             self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1
-            self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1  # 指令行数增加，指向下一条指令
+            # 防止结尾的中断指令被识别为进程结束，中断的pc+1在回传的时候完成
+            # self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1  # 指令行数增加，指向下一条指令
 
             self.io_module.add_request(source_pid=self.running_pid, target_device=command[1], IO_time=command[3], content=command[2],\
                                        priority_num=1, is_disk=False, file_path=None, rw_state=None)
             self.io_interrupt("device_io")
         elif command[0] == "access":
+            pass
+        elif command[0] == "read" or command[0] == "write":
             pass
 
     def print_status(self):
@@ -247,16 +276,20 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
         self.running_pid = -1  # 把当前运行的改为没有
 
     ## 使用kill命令终止的函数 感觉其实也没有太多变化
-    def kill_process(self,pid):
+    def kill_process(self,pid):   # 注意，不一定是将当前运行的进程kill掉，所以要区别running_pid的使用情况
         if pid in self.ready_queue:
             self.ready_queue.remove(pid)
         if pid in self.waiting_queue:
             self.waiting_queue.remove(pid)
         ## 释放内存 大概只要传过去pid就可以
-        ## 释放进程队列  大概只要传过去pid就可以
-        self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "terminated" #把当前进程改成中止
+
+        ## 释放设备队列
+        self.io_module.release_process_request(pid)
+        self.pcb_pool[self.loc_pid_inPool(pid)].status = "terminated" #把当前进程改成中止
         ## 遍历当前进程的所有子进程并把子进程的父进程改成init进程
-        self.running_pid = -1  # 把当前运行的改为没有
+
+        if self.running_pid == pid:   # 在running kill的时候直接停止当前的running_pid
+            self.running_pid = -1  # 把当前运行的改为没有
 
 if __name__ == '__main__':
     e = Event()  # 默认False
@@ -272,7 +305,7 @@ if __name__ == '__main__':
 
         if e.is_set() and target:
             target = False
-            if current_time in [2,8]: #创建1优先级的进程
+            if current_time in [2]: #创建1优先级的进程
                 P.create_process("a.exe",1)
                 continue
             if current_time in [6]:
