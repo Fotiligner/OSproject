@@ -127,7 +127,7 @@ def clock():  #  模拟时钟
 
 
 class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils.Process_Utils):  # 多继承
-    def __init__(self):
+    def __init__(self, memory_module, file_module):
         #初始化父类ProcessScheduler
         Scheduler.ProcessScheduler.__init__(self)
         threading.Thread.__init__(self)
@@ -140,6 +140,10 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
         #self.schedule_algorithm = args.schedule_algorithm  # 仅在single_queue下生效
 
         self.io_module = IO_Module('device.json')
+        self.memory_module = memory_module
+        self.file_module = file_module
+
+        self.page_per_process = 3
 
 
     # def init_process_module(self):
@@ -152,12 +156,15 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
             # my_aid = self.memory_manager.alloc(
             #                 pid=self.cur_pid, size=int(file['size']))
 
-
             # 理论上创建进程时进程已经具有了逻辑页号和地址上限
+
+            type, self.current_pid = self.getCurrentpid()  # 从success里调到外，可能有bug
+
+            self.memory_module.alloc(self.current_pid, self.page_per_process)
+            # 文件总页数， 指令行数， 返回值（错误码）
 
             success = True
             if success: # 内存分配成功
-                type, self.current_pid = self.getCurrentpid()
                 if(type == "new"): #如果是个新PCB,也就是老PCB都没有终止
                     self.pcb_pool.append(PCB(self.current_pid, parent_pid=-1, \
                                              child_pid=-1, priority=priority, start_time=current_time, \

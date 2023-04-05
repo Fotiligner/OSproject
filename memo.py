@@ -48,6 +48,11 @@ class PageTable:
         else:
             self.table[idx][1] = valid
 
+class Page:
+    def __init__(self, content=None, is_allocated=-1, pid=-1):
+        self.is_allocated = is_allocated
+        self.pid = pid
+        self.content = content
 
 class MemoryManager:
     def __init__(self,  page_size=30, command_size=10, page_number=255,
@@ -59,9 +64,10 @@ class MemoryManager:
         """
 
         # record the virtual memory
-        self.virtual_memory = np.array([[page_size, -1, 0] for i in range(page_number)])  #255个【1024，-1，0】
+
+        self.virtual_memory = np.array([Page() for i in range(page_number)])  #255个【1024，-1，0】
         # 是否分配、pid、字符串1-3
-        self.physical_memory = [[-1, -1, None, None,None] for i in range(physical_page)]  #50个[-1,0,None, None,None]
+        self.physical_memory = [[-1, -1, None, None, None] for i in range(physical_page)]  #50个[-1,0,None, None,None]
         # for LRU algorithm, the first one is the Least Recent Used, the
         # last is recently visited
         self.schedule_queue = []
