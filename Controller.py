@@ -24,7 +24,7 @@ class Controller:
             "mkdir": "mkdir [directory path]",
             "vi": "vi [file name]",
             "touch": "touch [file name]",
-            "rm": "rm [file name or path or directory path]",
+            "rm": "rm [-option] [file name or dir]",
             "chmod": "chmod [file name or path] [authority]",
             "run": "run [file name or path]",  # 运行进程文件
             "fmode": "fmode, display file module state",
@@ -47,6 +47,8 @@ class Controller:
                 print('\033[1;31m ' + "the path doesn't exist." + '\033[0m')
             elif ret_code == Ret_State.Error_Dir_Exist:
                 print('\033[1;31m ' + "the dir already exist." + '\033[0m')
+            elif ret_code == Ret_State.Error_Dir_Not_Exist:
+                print('\033[1;31m ' + "the dir doesn't exist." + '\033[0m')
 
         if command:
             print('\033[1;31m' + command + " : " + self.command_dict[command] + '\033[0m')
@@ -121,6 +123,17 @@ class Controller:
                     else:
                         ret_code = self.file_module.vi(command[1])
                         self.print_error_info("vi error", ret_code=ret_code)
+
+                elif command[0] == "rm":
+                    if argc != 2 and argc != 3:
+                        self.print_error_info("command error", command="rm")
+                    else:
+                        ret_code=None
+                        if argc == 2:
+                            ret_code=self.file_module.rm(command[1])
+                        else:
+                            ret_code=self.file_module.rm(mode=command[1],name=command[2])
+                        self.print_error_info("rm error", ret_code=ret_code)
 
                 elif command[0] == "exit":
                     return
