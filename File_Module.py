@@ -1,4 +1,6 @@
-import msvcrt, sys, os
+import msvcrt, os, sys
+import prettytable
+import reprint
 
 disk_path = os.path.abspath(r"..") + "\\MYDISK"
 
@@ -35,7 +37,7 @@ class Disk:
     def write_block(self, loc, buf):
         with open(self.file_path, 'r+') as f:
             f.seek(loc * self.blk_size)
-            if len(buf)<self.blk_size:
+            if len(buf) < self.blk_size:
                 f.write(buf)
             else:
                 f.write(buf[:self.blk_size])
@@ -45,23 +47,6 @@ class Disk:
             f.seek(loc * self.blk_size)
             return f.read(self.blk_size)
 
-    # def read_blk2end(self, loc):
-    #     buf = self.read_block(loc)
-    #     while buf.count('\0') == 0:
-    #         loc = loc + 1
-    #         buf = buf + self.read_block(loc)
-    #     return buf
-    #
-    # def write_blk2end(self,loc,buf):
-    #     size=len(buf)
-    #     while size>0:
-    #         self.write_block(loc,buf)
-    #         loc=loc+1
-    #         buf=buf[self.blk_size:]
-    #         size=size-self.blk_size
-
-
-
     def display(self):
         # a+模式下，刚打开时文件指针位置在文件结尾
         with open(self.file_path, 'a+') as f:
@@ -69,17 +54,28 @@ class Disk:
             f.seek(0)
             track_no = 0
             sector_no = 0
-            print('%2d' % track_no, end=': ')
-            while f.tell() < size:
+            table_head = ['磁道号']
+            table_head.extend(['扇区' + str(i) for i in range(self.sector_per_track)])
+            table = prettytable.PrettyTable(table_head)
+            row = [str(track_no)]
+            cflag = 'y'
+            while cflag == 'y' and f.tell() < size:
                 if sector_no < self.sector_per_track:
-                    print('%2d' % sector_no, end=': ')
-                    print(repr(f.read(self.blk_size)), end='|')
+                    row.append(repr(f.read(self.blk_size)))
                     sector_no = sector_no + 1
                 else:
+                    table.add_row(row)
                     sector_no = 0
                     track_no = track_no + 1
-                    print('\n%d' % track_no, end=':\n')
-            print('\n')
+                    if track_no != 0 and track_no % 10 == 0:
+                        print(table)
+                        while True:
+                            cflag = input('show more? [y/n]')
+                            if cflag == 'y' or cflag == 'n':
+                                break
+                    row = [str(track_no)]
+            if cflag == 'y':
+                print(table)
 
     def display_info(self):
         print('track_tot_num:', self.track_tot_num)
@@ -112,8 +108,8 @@ class Disk:
         :param num:
         :return:
         '''
-        addr=[]
-        bitmap=list(self.bitmap)
+        addr = []
+        bitmap = list(self.bitmap)
         for i in range(self.data_blk_num):
             if bitmap[i] == '0':
                 addr.append(i)
@@ -121,12 +117,10 @@ class Disk:
                     break
         if len(addr) >= num:
             for i in range(len(addr)):
-                bitmap[addr[i]]='1'
-                self.bitmap=''.join(bitmap)
-                if i == len(addr)-1:
-                    self.write_block(self.data_base+addr[i],'\0')
+                bitmap[addr[i]] = '1'
+                self.bitmap = ''.join(bitmap)
         else:
-            addr=[]
+            addr = []
         return addr
 
 
@@ -139,8 +133,8 @@ class Dir:
 
 class FCB:
     def __init__(self, name, disk_loc, size, auth):
-        self.size = size
-        self.blk_num = int(size / Disk.blk_size) + 1
+        self.size = size  # 文件大小，以字符为单位，不包括结束符'\0'
+        self.blk_num = int((size + 1 )/ Disk.blk_size) + 1
         self.name = name
         self.auth = auth
         self.disk_loc = disk_loc
@@ -179,14 +173,15 @@ class FileSystem:
                     dir_queue.append(new_dir)
                 else:  # 文件
                     disk_loc = []
-                    size = int(nodes[index + 1])
-                    for i in range(int(size / self.disk.blk_size) + 1):
-                        disk_loc.append(int(nodes[index+2+i]))
-                    auth = nodes[index + 3]
+                    auth = nodes[index + 1]
+                    size = int(nodes[index + 2])
+                    blk_num = int(nodes[index + 3])
+                    for i in range(blk_num):
+                        disk_loc.append(int(nodes[index + 4 + i]))
                     new_fcb = FCB(name, disk_loc, size, auth)
                     new_fcb.parent = now_dir
                     now_dir.childs.append(new_fcb)
-                    index = index + 3
+                    index = index + 3 +blk_num
             index = index + 1
 
     def write_dir_tree(self):
@@ -200,10 +195,11 @@ class FileSystem:
                     buf = buf + c.name + ' d '
                 else:
                     buf = buf + c.name + ' f '
-                    buf = buf + str(c.size) + ' '
-                    for i in range(int(c.size/self.disk.blk_size)+1):
-                        buf = buf + str(c.disk_loc[i])+' '
                     buf = buf + c.auth + ' '
+                    buf = buf + str(c.size) + ' '
+                    buf = buf + str(c.blk_num)+' '
+                    for i in range(c.blk_num):
+                        buf = buf + str(c.disk_loc[i]) + ' '
             buf = buf + ' \0 '
         dir_base = self.disk.dir_base
         blk_size = self.disk.blk_size
@@ -215,27 +211,34 @@ class FileSystem:
         new_fcb = FCB(name, disk_addr, size, auth)
         new_fcb.parent = self.work_dir
         self.work_dir.childs.append(new_fcb)
+        return new_fcb
 
     def make_dir(self, name):
         new_dir = Dir(name)
         new_dir.parent = self.work_dir
         self.work_dir.childs.append(new_dir)
 
-    def read_file(self,fcb):
-        buf=''
+    def read_file(self, fcb):
+        buf = ''
         for i in fcb.disk_loc:
-            buf=buf+self.disk.read_block(self.disk.data_base+i)
-        return buf
+            buf = buf + self.disk.read_block(self.disk.data_base + i)
+            if buf.find('\0') != -1:
+                buf = buf[: buf.find('\0') + 1]
+                break
+        return buf[:-1]  # 去除末尾的结尾符
 
-    def write_file(self,fcb,buf):
-        size=len(buf)
-        new_blk_num=int(size/self.disk.blk_size)+1
+    def write_file(self, fcb, buf):
+        fcb.size = len(buf)
+        buf = buf + '\0'
+        new_blk_num = int((fcb.size + 1) / self.disk.blk_size) + 1
         if new_blk_num > fcb.blk_num:
-            fcb.disk_loc.extend(self.disk.disk_alloc(new_blk_num-fcb.blk_num))
-            fcb.blk_num=new_blk_num
+            new_disk_loc=self.disk.disk_alloc(new_blk_num - fcb.blk_num)
+            print(new_disk_loc)
+            fcb.disk_loc.extend(new_disk_loc)
+            fcb.blk_num = new_blk_num
         for i in range(fcb.blk_num):
-            self.disk.write_block(self.disk.data_base+fcb.disk_loc[i],buf)
-            buf = buf[self.blk_size:]
+            self.disk.write_block(self.disk.data_base + fcb.disk_loc[i], buf)
+            buf = buf[self.disk.blk_size:]
 
     def find_node(self, path):
         '''
@@ -272,7 +275,8 @@ class FileSystem:
     def touch(self, name, size=0, auth='wrx'):
         disk_loc = self.disk.disk_alloc(int(size / self.disk.blk_size) + 1)
         if len(disk_loc) != -1:
-            self.make_fcb(name, disk_loc, size, auth)
+            fcb = self.make_fcb(name, disk_loc, size, auth)
+        self.write_file(fcb, '') # 添加文件结束符，以免这个块是脏的
 
     def cd(self, dir_name):
         if dir_name == '..':
@@ -293,37 +297,37 @@ class FileSystem:
             print(c.name, end=' ')
         print('')
 
-    def vi(self,name):
-        file_node=None
+    def vi(self, name):
+        file_node = None
         for c in self.work_dir.childs:
-            if isinstance(c,FCB) and c.name == name:
-                file_node=c
-        buf=self.disk.read_blk2end(file_node.disk_loc+self.disk.data_base)
+            if isinstance(c, FCB) and c.name == name:
+                file_node = c
+        buf = self.read_file(file_node)
         for c in buf:
             msvcrt.putwch(c)
         while True:
             ch = msvcrt.getwch()
-            if ch == '\r':
+            if '\x20' <= ch <= '\x7e':  # 可显示字符
+                buf = buf + ch
+                msvcrt.putwch(ch)
+            elif ch == '\r' or ch == '\n':  # 换行
+                buf = buf + '\n'
                 msvcrt.putwch('\n')
-            elif ch == '\x08':
-                if buf:
+            elif ch == '\x08':  # 退格
+                if len(buf) > 0:
                     buf = buf[:-1]
                     msvcrt.putwch('\b')
                     msvcrt.putwch(' ')
                     msvcrt.putwch('\b')
-            elif ch == '\x1b':
+            elif ch == '\x11':  # 自定义退出键 ctrl + q
                 break
-
-            else:
-                buf = buf + ch
-                msvcrt.putwch(ch)
-        print('buf:%s'%buf)
-        self.disk.write_blk2end(file_node.disk_loc+self.disk.data_base,buf)
-
+        # print(repr(buf))
+        self.write_file(file_node, buf)
 
 
 if __name__ == '__main__':
     file_system = FileSystem(disk_path)
+    # file_system.disk.init_disk()
     file_system.read_dir_tree()
     active = True
     while active:
@@ -335,7 +339,7 @@ if __name__ == '__main__':
             file_system.disk.write_super_blk()
             file_system.write_dir_tree()
             active = False
-        elif cmd[0]=='save':
+        elif cmd[0] == 'save':
             file_system.disk.write_super_blk()
             file_system.write_dir_tree()
         elif cmd[0] == 'display':
@@ -356,6 +360,8 @@ if __name__ == '__main__':
             file_system.vi(cmd[1])
         elif cmd[0] == 'init':
             file_system.disk.init_disk()
+            file_system.read_dir_tree()
+        elif cmd[0] == 'rdt':
             file_system.read_dir_tree()
         else:
             print('no such command')
