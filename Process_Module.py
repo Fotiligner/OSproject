@@ -70,7 +70,7 @@ class PCB:
         self.parent_pid = parent_pid
         self.child_pid = child_pid
 
-        self.pc = 0   # 指向当前的执行代码行数，实际上可以用逻辑地址来代替
+        self.pc = "00000"   # 指向当前的执行代码行数，实际上可以用逻辑地址来代替
         self.pc_end =  pc_end   # 结束地址
 
         self.status = "ready"
@@ -127,7 +127,7 @@ def clock():  #  模拟时钟
 
 
 class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils.Process_Utils):  # 多继承
-    def __init__(self, memory_module, file_module):
+    def __init__(self, memory_module):
         #初始化父类ProcessScheduler
         Scheduler.ProcessScheduler.__init__(self)
         threading.Thread.__init__(self)
@@ -141,9 +141,9 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
 
         self.io_module = IO_Module('device.json')
         self.memory_module = memory_module
-        self.file_module = file_module
 
         self.page_per_process = 3
+        self.command_per_page = 5
 
 
     # def init_process_module(self):
@@ -181,6 +181,31 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
         else:
             print(f"[error] {file_name} is not an executable file")
 
+    def add_pc(self, pc):
+        # pc = "abcde"
+        pc_front = pc[:2]
+        pc_back = pc[2:]
+
+        pc_front = int(pc_front)
+        pc_back = int(pc_back)
+
+        pc_back += 1
+        if pc_back % self.command_per_page == 0:
+            pc_back = "000"
+            pc_front += 1
+            pc_front = "0" * (2 - len(str(pc_front))) + str(pc_front)
+        else:
+            pc_back = "0" * (3 - len(str(pc_back))) + str(pc_back)
+        return pc_front + pc_back
+
+
+
+
+
+
+
+
+
 
     def run(self):  # 模拟进程调度程序,run是threading.Thread中的重载函数
         target = True   # 进程时钟控制辅助指标
@@ -192,6 +217,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
                     self.scheduler("no running")
                 if(self.running_pid != -1):
                     ## 向内存中要一段代码的位置 传递过去pid和程序计数器pc  返回一个字符串  需要提前定义好一行指令的大小
+                    ## 下面这行代码会放入内存取地址的内容
                     command = self.pcb_pool[self.loc_pid_inPool(self.running_pid)].command_queue[self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc]   # 从内存中获得的file 4.2 暂时修改了下
                     self.command_running(command)
 
@@ -258,6 +284,8 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
         elif command[0] == "access":
             pass
         elif command[0] == "read" or command[0] == "write":
+            pass
+        elif command[0] == "exit":
             pass
 
     def print_status(self):

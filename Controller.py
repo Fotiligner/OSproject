@@ -7,15 +7,14 @@ from memo import MemoryManager
 
 import os
 
-
 class Controller:
     def __init__(self):
         # 初始化操作系统模块
         self.command_moduler = Command_Moduler()
         self.disk_path = os.path.abspath(r"..") + "\\MYDISK"
         self.file_module = File_Module(self.disk_path)
-        self.memory_module = MemoryManager()
-        self.process_module = Process_Module(self.memory_module, self.file_module)
+        self.memory_module = MemoryManager(self.file_module)
+        self.process_module = Process_Module(self.memory_module)
         self.current_user = "chafakao"
 
         self.command_dict = {
