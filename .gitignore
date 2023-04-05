@@ -1,3 +1,5 @@
 
 .idea/code.iml
 .idea/misc.xml
+__pycache__/Command.cpython-38.pyc
+*.pyc

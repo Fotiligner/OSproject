@@ -1,8 +1,16 @@
 import msvcrt, os, sys
 import prettytable
-import reprint
+from enum import Enum
 
 disk_path = os.path.abspath(r"..") + "\\MYDISK"
+
+
+class Ret_State(Enum):
+    Success = 0
+    Error_File_Exist = 1
+    Error_File_Not_Exist = 2
+    Error_Dir_Exist = 3
+    Error_Path_Not_Exist = 4
 
 
 class Disk:
@@ -134,14 +142,14 @@ class Dir:
 class FCB:
     def __init__(self, name, disk_loc, size, auth):
         self.size = size  # 文件大小，以字符为单位，不包括结束符'\0'
-        self.blk_num = int((size + 1 )/ Disk.blk_size) + 1
+        self.blk_num = int((size + 1) / Disk.blk_size) + 1
         self.name = name
         self.auth = auth
         self.disk_loc = disk_loc
         self.parent = None
 
 
-class FileSystem:
+class File_Module:
     root_path = '~'
     root_dir = Dir('~')
     work_path = root_path
@@ -149,6 +157,8 @@ class FileSystem:
 
     def __init__(self, file_path):
         self.disk = Disk(file_path)
+        # self.disk.init_disk()
+        self.read_dir_tree()
 
     def read_dir_tree(self):
         dir_base = self.disk.dir_base
@@ -181,7 +191,7 @@ class FileSystem:
                     new_fcb = FCB(name, disk_loc, size, auth)
                     new_fcb.parent = now_dir
                     now_dir.childs.append(new_fcb)
-                    index = index + 3 +blk_num
+                    index = index + 3 + blk_num
             index = index + 1
 
     def write_dir_tree(self):
@@ -197,7 +207,7 @@ class FileSystem:
                     buf = buf + c.name + ' f '
                     buf = buf + c.auth + ' '
                     buf = buf + str(c.size) + ' '
-                    buf = buf + str(c.blk_num)+' '
+                    buf = buf + str(c.blk_num) + ' '
                     for i in range(c.blk_num):
                         buf = buf + str(c.disk_loc[i]) + ' '
             buf = buf + ' \0 '
@@ -232,7 +242,7 @@ class FileSystem:
         buf = buf + '\0'
         new_blk_num = int((fcb.size + 1) / self.disk.blk_size) + 1
         if new_blk_num > fcb.blk_num:
-            new_disk_loc=self.disk.disk_alloc(new_blk_num - fcb.blk_num)
+            new_disk_loc = self.disk.disk_alloc(new_blk_num - fcb.blk_num)
             print(new_disk_loc)
             fcb.disk_loc.extend(new_disk_loc)
             fcb.blk_num = new_blk_num
@@ -270,31 +280,50 @@ class FileSystem:
         :param name:
         :return:
         '''
+        for c in self.work_dir.childs:
+            if isinstance(c, Dir) and c.name == name:
+                return Ret_State.Error_Dir_Exist
         self.make_dir(name)
+        self.write_dir_tree()
+        return Ret_State.Success
 
     def touch(self, name, size=0, auth='wrx'):
+        for c in self.work_dir.childs:
+            if isinstance(c, FCB) and c.name == name:
+                return Ret_State.Error_File_Exist
         disk_loc = self.disk.disk_alloc(int(size / self.disk.blk_size) + 1)
+        fcb = None
         if len(disk_loc) != -1:
             fcb = self.make_fcb(name, disk_loc, size, auth)
-        self.write_file(fcb, '') # 添加文件结束符，以免这个块是脏的
+        self.write_file(fcb, '')  # 添加文件结束符，以免这个块是脏的
+        self.write_dir_tree()
+        return Ret_State.Success
 
     def cd(self, dir_name):
         if dir_name == '..':
-            temp = self.work_path.split('\\')
-            self.work_path = '\\'.join(temp[:-1])
+            temp = self.work_path.split('/')
+            self.work_path = '/'.join(temp[:-1])
             self.work_dir = self.find_node(self.work_path)
         elif dir_name == '~':
             self.work_path = self.root_path
             self.work_dir = self.root_dir
         else:
+            flag = False
             for c in self.work_dir.childs:
                 if isinstance(c, Dir) and c.name == dir_name:
-                    self.work_path = self.work_path + '\\' + c.name
+                    self.work_path = self.work_path + '/' + c.name
                     self.work_dir = c
+                    flag = True
+            if not flag:
+                return Ret_State.Error_File_Not_Exist
+        return Ret_State.Success
 
     def ls(self):
         for c in self.work_dir.childs:
-            print(c.name, end=' ')
+            if isinstance(c, Dir):
+                print('\033[34m' + c.name + '\033[0m', end=' ')
+            else:
+                print('\033[38m' + c.name + '\033[0m', end=' ')
         print('')
 
     def vi(self, name):
@@ -302,37 +331,52 @@ class FileSystem:
         for c in self.work_dir.childs:
             if isinstance(c, FCB) and c.name == name:
                 file_node = c
+        if not file_node:
+            return Ret_State.Error_File_Not_Exist
         buf = self.read_file(file_node)
+        os.system('cls')
         for c in buf:
             msvcrt.putwch(c)
+
         while True:
             ch = msvcrt.getwch()
             if '\x20' <= ch <= '\x7e':  # 可显示字符
                 buf = buf + ch
-                msvcrt.putwch(ch)
+                # msvcrt.putwch(ch)
             elif ch == '\r' or ch == '\n':  # 换行
                 buf = buf + '\n'
-                msvcrt.putwch('\n')
+                # msvcrt.putwch('\n')
             elif ch == '\x08':  # 退格
                 if len(buf) > 0:
                     buf = buf[:-1]
-                    msvcrt.putwch('\b')
-                    msvcrt.putwch(' ')
-                    msvcrt.putwch('\b')
+                    # msvcrt.putwch('\b')
+                    # msvcrt.putwch(' ')
+                    # msvcrt.putwch('\b')
             elif ch == '\x11':  # 自定义退出键 ctrl + q
+                msvcrt.putwch('\n')
                 break
+            os.system('cls')
+            for c in buf:
+                msvcrt.putwch(c)
+
         # print(repr(buf))
         self.write_file(file_node, buf)
+        self.write_dir_tree()
+        return Ret_State.Success
+
+    def rm(self, name, mode):
+        pass
 
 
 if __name__ == '__main__':
-    file_system = FileSystem(disk_path)
+    file_system = File_Module(disk_path)
     # file_system.disk.init_disk()
     file_system.read_dir_tree()
     active = True
     while active:
         cmds = input(file_system.work_path + ':')
         cmd = cmds.split()
+        ret_code = 0
         if len(cmd) == 0:
             continue
         if cmd[0] == 'exit':
