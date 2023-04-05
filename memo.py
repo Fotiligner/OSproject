@@ -49,10 +49,17 @@ class PageTable:
             self.table[idx][1] = valid
 
 class Page:
-    def __init__(self, content=None, is_allocated=-1, pid=-1):
+    def __init__(self, page_size=None, content=None, is_allocated=-1, pid=-1):
         self.is_allocated = is_allocated
         self.pid = pid
         self.content = content
+        self.page_size = page_size
+
+    def getline(self,num):
+        cont=self.content.split(':')
+        return cont[num]
+
+    def getonechar(self,num):
 
 class MemoryManager:
     def __init__(self,  page_size=30, command_size=10, page_number=255,
