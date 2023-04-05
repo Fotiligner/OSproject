@@ -14,7 +14,8 @@ class Command_Moduler:
         output_list = []
         try:
             # commands = input(cwd + '$ ').split(';')   # cwd就是当前路径,在真正的操作系统中会显示在命令行输入的开头
-            commands_list = input('\033[1;36m' + user + ':' + '\033[34m' + path + '$ ').split(';')  # command用分号隔开各指令
+            commands_list = input('\033[1;36m' + user + '\033[0m' + ':' + '\033[34m' + path + '\033[0m' + '$ ').split(
+                ';')  # command用分号隔开各指令
         except BaseException:
             commands_list = []
 
