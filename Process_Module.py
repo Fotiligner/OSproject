@@ -228,13 +228,14 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
                 # io遍历和io进程的问题
 
                 device_output = self.io_module.IO_run()
+                # print(device_output)
                 if len(device_output) > 0:
                     print(device_output)
 
                 for return_dict in device_output:   # 当前时刻返回的device信息，用来指示已完成IO的进程信息以及传输的数据
                     print("在" + str(current_time) + "时刻" + "进程" + str(
                         self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pid) + "完成IO")
-                    self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc = self.add_pc(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)
+                    self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc = self.add_pc(self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc)
                     self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].status = "ready"
                     self.ready_queue.append(return_dict['pid'])  # 完成io的程序从waiting到ready
                     self.waiting_queue.remove(return_dict['pid'])
@@ -287,7 +288,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
             # 防止结尾的中断指令被识别为进程结束，中断的pc+1在回传的时候完成
             # self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1  # 指令行数增加，指向下一条指令
 
-            self.io_module.add_request(source_pid=self.running_pid, target_device=command[1], IO_time=command[3], content=command[2],\
+            self.io_module.add_request(source_pid=self.running_pid, target_device=command[1], IO_time=int(command[3]), content=command[2],\
                                        priority_num=1, is_disk=False, file_path=None, rw_state=None)
             self.io_interrupt("device_io")
         elif command[0] == "access":

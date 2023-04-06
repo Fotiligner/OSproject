@@ -19,7 +19,7 @@ class Disk:
     file_path = None
     track_tot_num = 100
     sector_per_track = 10
-    blk_size = 30
+    blk_size = 60
     blk_tot_num = track_tot_num * sector_per_track
     size = blk_tot_num * blk_size
     blk_free_num = blk_tot_num
