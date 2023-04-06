@@ -37,7 +37,7 @@ class Page:
         self.content=None
 
     def getline(self,num):
-        cont=self.content.split(':')
+        cont=self.content.split(';')
         return cont[num]
 
     def getonechar(self,num):
@@ -65,30 +65,23 @@ class MemoryManager:
         self.sizelist=[]
         self.file_module = file_module
 
-
-
-
-
-
-
-
-
     def alloc(self, pid, size,filename):
         s = size
 
         if s+self.allocated > self.pn:
             self.pidlist.append(pid)
             self.sizelist.append(size)
-            return False
+            return -1
         else:
             self.allocated += size
             self.page_fault += size
             file_fcb = self.file_module.get_fcb(filename)#文件接口
             if file_fcb:
                 disk_loc = file_fcb.disk_loc
+                print("disk_loc", disk_loc)
             else:
                 # 返回错误码
-                return
+                return -2  # 文件未找到
             psize=len(disk_loc)
             if pid in self.page_tables.keys():  # 已经有页表
                 ptable = self.page_tables[pid]
@@ -103,14 +96,24 @@ class MemoryManager:
                     self.physical_memory[i].pid = pid
                     self.physical_memory[i].is_allocated = 2
 
-                    ptable.table[size-s][0]=i
-                    ptable.table[size-s][1]=1
+                    print(size)
+                    print(s)
+                    ptable.table[size - s][0] = i
+                    ptable.table[size - s][1] = 1
                     ptable.table[size - s][2] = 1
                     self.Fage(size - s, ptable)
 
-                    self.physical_memory[i].content=self.file_module.disk.read_block(ptable.table[size-s][5])
+                    self.physical_memory[i].content=self.file_module.disk.read_block(self.file_module.disk.data_base + ptable.table[size-s][5])
+
+                    print(self.physical_memory[i].content)
+
                     # print(self.physical_memory[i].content)
                     s = s-1
+
+                    # 额外添加，不知道对不对
+                    if size - s >= psize:
+                        break
+
 
                 if s == 0:
                     break
@@ -168,8 +171,10 @@ class MemoryManager:
         return self.physical_memory[block].getonechar(page_offset)
 
     def page_PC(self, pid, address):
+        print("address")
+        print(address)
         self.page_access += 1
-        page=10*int(address[0])+int(address[1])
+        page= int(address[:2])
         page_offset = 100*int(address[2])+10*int(address[3])+int(address[4])  # 页内偏移
 
         ptable = self.page_tables[pid]
@@ -233,7 +238,8 @@ class MemoryManager:
                 max=ptable.table[i][2]
                 page=i
         if ptable.table[page][4] == 1:
-            self.file_module.disk.write_block(ptable.table[page][0],self.physical_memory[ptable.table[page][0]].content)
+            self.file_module.disk.write_block(self.file_module.disk.database + ptable.table[page][0], \
+                                              self.physical_memory[ptable.table[page][0]].content)
         ptable.delete(page)
         return page
 
