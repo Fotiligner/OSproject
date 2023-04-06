@@ -234,8 +234,8 @@ class File_Module:
 
     def get_fcb(self, file_name):
         file_node = None
-        for c in self.work_dir:
-            if isinstance(c, Dir) and c.name == file_name:
+        for c in self.work_dir.childs:
+            if isinstance(c, FCB) and c.name == file_name:
                 file_node = c
         return file_node
 
