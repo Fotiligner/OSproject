@@ -156,8 +156,9 @@ class File_Module:
 
     def __init__(self, file_path):
         self.disk = Disk(file_path)
-        # self.disk.init_disk()
-        # self.disk.write_super_blk()
+        if not os.path.isfile(file_path):
+            self.disk.init_disk()
+            self.disk.write_super_blk()
         self.read_dir_tree()
 
     def read_dir_tree(self):
@@ -269,7 +270,6 @@ class File_Module:
         new_blk_num = int((fcb.size + 1) / self.disk.blk_size) + 1
         if new_blk_num > fcb.blk_num:
             new_disk_loc = self.disk.disk_alloc(new_blk_num - fcb.blk_num)
-            print(new_disk_loc)
             fcb.disk_loc.extend(new_disk_loc)
             fcb.blk_num = new_blk_num
         for i in range(fcb.blk_num):
