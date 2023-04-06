@@ -124,7 +124,7 @@ class MemoryManager:
 
         status = 0
         ptable=self.page_tables[pid]
-        for i in range(ptable.size()):
+        for i in range(len(ptable.table)):
             if ptable.table[i][1] == 1:
                 status = 1
                 b = ptable.table[i][0]
@@ -133,7 +133,7 @@ class MemoryManager:
                 self.physical_memory[b].clr()
                 self.allocated=self.allocated-1
 
-        ptable.clear()
+        ptable.table.clear()
         self.page_tables.pop(pid)
 
         if status == 0:
@@ -151,7 +151,7 @@ class MemoryManager:
         block = ptable.transform(page)
         if block == -2:
             print("ERROR ADDRESS !!!!")
-            return
+            return -2
         elif block ==-1:    #缺页中断
             if self.schedule == 'LRU':
                 block=self.LRU(ptable)

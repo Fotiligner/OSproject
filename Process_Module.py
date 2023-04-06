@@ -280,7 +280,6 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
 
             if self.pcb_pool[self.loc_pid_inPool(self.running_pid)].command_already_time == time:
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc = self.add_pc(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)   # 指令行数增加，指向下一条指令
-                print("after add" + self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].command_already_time = 0
             return
         elif command[0] == "output" or command[0] == "input":  # output + device_name + content + time
@@ -292,7 +291,15 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
                                        priority_num=1, is_disk=False, file_path=None, rw_state=None)
             self.io_interrupt("device_io")
         elif command[0] == "access":
-            pass
+            self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1  # 进程进度加一（already_time）
+            address_content = self.memory_module.access(self.running_pid, command[1])
+
+            if address_content == -2: # 地址出错
+                print('\033[1;31m' + "访问的地址越界！" + '\033[0m')
+            else:
+                print("访问的地址内容为：" + address_content)
+            self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc = self.add_pc(
+                self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)  # 指令行数增加，指向下一条指令
         elif command[0] == "read" or command[0] == "write":
             pass
         elif command[0] == "exit":
@@ -318,8 +325,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
             self.ready_queue.remove(self.running_pid)
         if self.running_pid in self.waiting_queue:
             self.waiting_queue.remove(self.running_pid)
-        ## 释放内存 大概只要传过去self.running_pid就可以
-
+        self.memory_module.free(self.running_pid)
         ## 遍历当前进程的所有子进程并把子进程的父进程改成init进程
         self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "terminated" #把当前进程改成中止
         self.running_pid = -1  # 把当前运行的改为没有
@@ -331,6 +337,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
         if pid in self.waiting_queue:
             self.waiting_queue.remove(pid)
         ## 释放内存 大概只要传过去pid就可以
+        self.memory_module.free(pid)
 
         ## 释放设备队列
         self.io_module.release_process_request(pid)
@@ -339,6 +346,8 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
 
         if self.running_pid == pid:   # 在running kill的时候直接停止当前的running_pid
             self.running_pid = -1  # 把当前运行的改为没有
+
+        print("在" + str(current_time) + "时刻" + "进程" + str(pid) + "被杀死")
 
 if __name__ == '__main__':
     e = Event()  # 默认False
