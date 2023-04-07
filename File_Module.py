@@ -16,19 +16,17 @@ class Ret_State(Enum):
 
 
 class Disk:
-    file_path = None
-    track_tot_num = 100
-    sector_per_track = 10
-    blk_size = 30
-    blk_tot_num = track_tot_num * sector_per_track
-    size = blk_tot_num * blk_size
-    blk_free_num = blk_tot_num
-    super_blk_num = 80
-    dir_base = super_blk_num
-    dir_blk_num = 120  # 目录区
-    data_base = dir_base + dir_blk_num
-    data_blk_num = blk_tot_num - super_blk_num - dir_blk_num
-
+    file_path = None  # 磁盘文件路径
+    track_tot_num = 100  # 总磁道数
+    sector_per_track = 10  # 每个磁道的扇区数
+    blk_size = 60  # 块的大小，以字符为单位
+    blk_tot_num = track_tot_num * sector_per_track  # 总块数
+    size = blk_tot_num * blk_size  # 总大小，以字符为单位
+    super_blk_num = 80  # 超级块的数目
+    dir_base = super_blk_num  # 目录区开始的块号
+    dir_blk_num = 120  # 目录区块数目
+    data_base = dir_base + dir_blk_num  # 数据区开始块号
+    data_blk_num = blk_tot_num - super_blk_num - dir_blk_num  # 数据区块数目
     bitmap = '0' * data_blk_num  # 位图是针对数据区的。0表示free,1表示占用
 
     def __init__(self, file_path):
@@ -156,8 +154,9 @@ class File_Module:
 
     def __init__(self, file_path):
         self.disk = Disk(file_path)
-        # self.disk.init_disk()
-        # self.disk.write_super_blk()
+        if not os.path.isfile(file_path):
+            self.disk.init_disk()
+            self.disk.write_super_blk()
         self.read_dir_tree()
 
     def read_dir_tree(self):
@@ -269,7 +268,6 @@ class File_Module:
         new_blk_num = int((fcb.size + 1) / self.disk.blk_size) + 1
         if new_blk_num > fcb.blk_num:
             new_disk_loc = self.disk.disk_alloc(new_blk_num - fcb.blk_num)
-            print(new_disk_loc)
             fcb.disk_loc.extend(new_disk_loc)
             fcb.blk_num = new_blk_num
         for i in range(fcb.blk_num):
@@ -366,16 +364,11 @@ class File_Module:
             ch = msvcrt.getwch()
             if '\x20' <= ch <= '\x7e':  # 可显示字符
                 buf = buf + ch
-                # msvcrt.putwch(ch)
             elif ch == '\r' or ch == '\n':  # 换行
                 buf = buf + '\n'
-                # msvcrt.putwch('\n')
             elif ch == '\x08':  # 退格
                 if len(buf) > 0:
                     buf = buf[:-1]
-                    # msvcrt.putwch('\b')
-                    # msvcrt.putwch(' ')
-                    # msvcrt.putwch('\b')
             elif ch == '\x11':  # 自定义退出键 ctrl + q
                 msvcrt.putwch('\n')
                 break

@@ -1,9 +1,12 @@
 from time import sleep
 
 from Command import Command_Moduler
-from Process_Module import Process_Module
+from Process_Module import Process_Module, clock_running
 from File_Module import File_Module, Ret_State
 from memo import MemoryManager
+import threading
+from threading import Event, Thread, current_thread
+import time
 
 import os
 
@@ -11,10 +14,15 @@ class Controller:
     def __init__(self):
         # 初始化操作系统模块
         self.command_moduler = Command_Moduler()
-        self.disk_path = os.path.abspath(r"..") + "\\MYDISK"
+        self.disk_path = os.path.abspath(r".") + "\\MYDISK"
         self.file_module = File_Module(self.disk_path)
         self.memory_module = MemoryManager(self.file_module)
         self.process_module = Process_Module(self.memory_module)
+
+        self.process_module.setDaemon(True)
+        self.process_module.executing = True
+        self.process_module.start()  # P作为线程开始运行,使用重定义的run函数
+
         self.current_user = "chafakao"
 
         self.command_dict = {
@@ -87,7 +95,7 @@ class Controller:
                     else:
                         # 列出可执行文件列表
                         for file_name in command[1:]:
-                            self.process_module.create_process(file_name)
+                            self.process_module.create_process(file_name, 1)
 
                 elif command[0] == 'touch':
                     if argc != 2:
@@ -135,10 +143,12 @@ class Controller:
                         self.print_error_info("rm error", ret_code=ret_code)
 
                 elif command[0] == "exit":
+                    self.process_module.executing = False
                     return
 
 
 if __name__ == '__main__':
     os_controller = Controller()
-    # os_controller.execute()
-    os_controller.memory_module.alloc(1,10,'test')
+    os_controller.execute()
+    clock_running = False
+

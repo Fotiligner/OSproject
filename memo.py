@@ -34,7 +34,7 @@ class Frame:    # 一个内存块
         self.content=None
 
     def getline(self,num):
-        cont=self.content.split(':')
+        cont=self.content.split(';')
         return cont[num]
 
     def getonechar(self,num):
@@ -65,13 +65,14 @@ class MemoryManager:
         if s+self.allocated > self.pn:
             self.pidlist.append(pid)
             self.sizelist.append(size)
-            return False
+            return -1
         else:
             self.allocated += size
             self.page_fault += size
             file_fcb = self.file_module.get_fcb(filename)  # 文件接口
             if file_fcb:
                 disk_loc = file_fcb.disk_loc
+                print("disk_loc", disk_loc)
             else:
                 print("UNFOUNDE FILE !!!!") # 返回错误码
                 return
@@ -101,7 +102,7 @@ class MemoryManager:
     def free(self, pid):
         status = 0
         ptable=self.page_tables[pid]
-        for i in range(ptable.size()):
+        for i in range(len(ptable.table)):
             if ptable.table[i][1] == 1:
                 status = 1
                 b = ptable.table[i][0]
@@ -110,7 +111,8 @@ class MemoryManager:
                             self.physical_memory[ptable.table[i][0]].content)
                 self.physical_memory[b].clr()
                 self.allocated=self.allocated-1
-        ptable.clear()
+
+        ptable.table.clear()
         self.page_tables.pop(pid)
         if status == 0:
             return False
@@ -124,7 +126,7 @@ class MemoryManager:
         block = ptable.transform(page)
         if block == -2:
             print("ERROR ADDRESS !!!!")
-            return
+            return -2
         elif block ==-1:    #缺页中断
             if self.schedule == 'LRU':
                 block=self.LRU(ptable)
@@ -143,8 +145,10 @@ class MemoryManager:
         return self.physical_memory[block].getonechar(page_offset)
 
     def page_PC(self, pid, address):
+        print("address")
+        print(address)
         self.page_access += 1
-        page=10*int(address[0])+int(address[1])
+        page= int(address[:2])
         page_offset = 100*int(address[2])+10*int(address[3])+int(address[4])  # 页内偏移
         ptable = self.page_tables[pid]
         block = ptable.transform(page)
@@ -200,7 +204,8 @@ class MemoryManager:
                 max=ptable.table[i][2]
                 page=i
         if ptable.table[page][4] == 1:
-            self.file_module.disk.write_block(ptable.table[page][0],self.physical_memory[ptable.table[page][0]].content)
+            self.file_module.disk.write_block(self.file_module.disk.database + ptable.table[page][0], \
+                                              self.physical_memory[ptable.table[page][0]].content)
         ptable.delete(page)
         return page
 
