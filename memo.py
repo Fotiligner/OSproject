@@ -3,14 +3,11 @@
 import copy
 
 
-class PageTable:
+class PageTable:  # 页表
     def __init__(self, max):
-        # frame number represent the virtual page's location in physical memory
-        # the table has a k_v as (page, [frame_number, validation])
 
-        self.table = [[-1, -1, -1, -1, -1, None] for i in range(max)]#块号、状态位、入序、访问、修改位、外存地址
-
-
+        self.table = [[-1, -1, -1, -1, -1, None] for i in range(max)]
+        # 块号、状态位、入序、访问、修改位、外存地址
 
     def delete(self, page_num):  # 清空页表中一页
         self.table[page_num]=[-1, -1, -1, -1, -1, None]
@@ -24,12 +21,12 @@ class PageTable:
             return -2
 
 
-class Page:
+class Frame:    # 一个内存块
     def __init__(self, page_size=50, content=None, is_allocated=-1, pid=-1):
-        self.is_allocated = is_allocated
-        self.pid = pid
-        self.content = content
-        self.page_size = page_size
+        self.is_allocated = is_allocated    # 该块是否分配
+        self.pid = pid                      # 获得该块的进程pid
+        self.content = content              # 块的内容
+        self.page_size = page_size          # 一块的容量
 
     def clr(self):
         self.pid=-1
@@ -45,37 +42,26 @@ class Page:
             return self.content[num]
         return False
 
+
 class MemoryManager:
     def __init__(self,file_module,  page_size=50, command_size=10, physical_page=50, schedule='FIFO'):
 
-        # 是否分配、pid、字符串1-3
-        self.physical_memory = [Page() for i in range(physical_page)]  #物理内存
-        self.ps = page_size
-        self.cs = command_size
-        self.pn = physical_page
-        self.page_tables = {}
-        self.schedule = schedule
+        self.physical_memory = [Frame() for i in range(physical_page)]  # 物理内存
+        self.ps = page_size                                             # 一页（块）的容量
+        self.cs = command_size                                          # 一条指令的长度
+        self.pn = physical_page                                         # 物理内存块数
+        self.page_tables = {}                                           # 所有进程的页表
+        self.schedule = schedule                                        # 调页策略
+        self.allocated = 0                                              # 物理内存已经被分配的块数
+        self.page_fault = 0                                             # 缺页发生次数
+        self.page_access = 0                                            # 页访问次数
+        self.physical_rate = [0]                                        # 内存使用率记录
+        self.pidlist=[]                                                 # 未被满足的进程队列
+        self.sizelist=[]                                                # 未被满足的需求块数队列
+        self.file_module = file_module                                  # 文件模块接口
 
-        self.physical_rate = [0]
-        self.physical_history = [copy.deepcopy(self.physical_memory)]
-        self.allocated = 0
-        self.page_fault = 0
-        self.page_access = 0
-        self.pidlist=[]
-        self.sizelist=[]
-        self.file_module = file_module
-
-
-
-
-
-
-
-
-
-    def alloc(self, pid, size,filename):
+    def alloc(self, pid, size, filename):
         s = size
-
         if s+self.allocated > self.pn:
             self.pidlist.append(pid)
             self.sizelist.append(size)
@@ -83,11 +69,11 @@ class MemoryManager:
         else:
             self.allocated += size
             self.page_fault += size
-            file_fcb = self.file_module.get_fcb(filename)#文件接口
+            file_fcb = self.file_module.get_fcb(filename)  # 文件接口
             if file_fcb:
                 disk_loc = file_fcb.disk_loc
             else:
-                # 返回错误码
+                print("UNFOUNDE FILE !!!!") # 返回错误码
                 return
             psize=len(disk_loc)
             if pid in self.page_tables.keys():  # 已经有页表
@@ -99,26 +85,20 @@ class MemoryManager:
                 ptable.table[i][5]=disk_loc[i]
             for i in range(self.pn):
                 if self.physical_memory[i].is_allocated == -1:  # 该页未分配
-
                     self.physical_memory[i].pid = pid
                     self.physical_memory[i].is_allocated = 2
-
                     ptable.table[size-s][0]=i
                     ptable.table[size-s][1]=1
                     ptable.table[size - s][2] = 1
                     self.Fage(size - s, ptable)
-
                     self.physical_memory[i].content=self.file_module.disk.read_block(ptable.table[size-s][5])
                     # print(self.physical_memory[i].content)
                     s = s-1
-
                 if s == 0:
                     break
-
             return psize
 
     def free(self, pid):
-
         status = 0
         ptable=self.page_tables[pid]
         for i in range(ptable.size()):
@@ -126,25 +106,21 @@ class MemoryManager:
                 status = 1
                 b = ptable.table[i][0]
                 if ptable.table[i][4] == 1:  # 有修改，写回外存,给块号和内容
-                    self.file_module.disk.write_block(ptable.table[i][0], self.physical_memory[ptable.table[i][0]].content)
+                    self.file_module.disk.write_block(ptable.table[i][0],
+                            self.physical_memory[ptable.table[i][0]].content)
                 self.physical_memory[b].clr()
                 self.allocated=self.allocated-1
-
         ptable.clear()
         self.page_tables.pop(pid)
-
         if status == 0:
             return False
         return True
 
     def access(self, pid, address):
-
         self.page_access += 1
         page=10*int(address[0])+int(address[1])
         page_offset = 100*int(address[2])+10*int(address[3])+int(address[4])  # 页内偏移
-
         ptable = self.page_tables[pid]
-
         block = ptable.transform(page)
         if block == -2:
             print("ERROR ADDRESS !!!!")
@@ -162,7 +138,6 @@ class MemoryManager:
             ptable.table[page][1] = 1
             ptable.table[page][4] = -1
         elif block>=0:
-
             if self.schedule == 'LRU':
                 self.Lage(block,ptable)
         return self.physical_memory[block].getonechar(page_offset)
@@ -171,9 +146,7 @@ class MemoryManager:
         self.page_access += 1
         page=10*int(address[0])+int(address[1])
         page_offset = 100*int(address[2])+10*int(address[3])+int(address[4])  # 页内偏移
-
         ptable = self.page_tables[pid]
-
         block = ptable.transform(page)
         if block == -2:
             print("ERROR ADDRESS !!!!")
@@ -190,9 +163,7 @@ class MemoryManager:
             ptable.table[page][0] = block
             ptable.table[page][1] = 1
             ptable.table[page][4] = -1
-
         elif block>=0:
-
             if self.schedule == 'LRU':
                 self.Lage(block,ptable)
         return self.physical_memory[block].getline(page_offset)
@@ -210,7 +181,6 @@ class MemoryManager:
             ptable.table[idx][3] = 0
 
     def LRU(self, ptable):
-
         max=0
         page=0
         for i in range(len(ptable.table)):
@@ -222,10 +192,7 @@ class MemoryManager:
         ptable.delete(page)
         return page
 
-
-
     def FIFO(self, ptable):
-
         max=0
         page=0
         for i in range(len(ptable.table)):

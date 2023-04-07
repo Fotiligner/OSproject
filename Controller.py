@@ -140,4 +140,5 @@ class Controller:
 
 if __name__ == '__main__':
     os_controller = Controller()
-    os_controller.execute()
+    # os_controller.execute()
+    os_controller.memory_module.alloc(1,10,'test')
