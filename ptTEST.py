@@ -1,24 +1,31 @@
 import sys
-
-from PyQt5 import Qt
-from PyQt5.QtGui import QPainter, QBrush, QColor
+import random
+from PyQt5.Qt import Qt
+from PyQt5.QtGui import QPainter, QBrush, QColor, QPen
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QGraphicsView, \
-    QGraphicsScene
+    QGraphicsScene, QGraphicsItem
 
 
 class Grid(QGraphicsScene):
     def __init__(self):
         super().__init__()
-
         self.setSceneRect(0, 0, 1200, 900)
-        self.setItemIndexMethod(self.NoIndex)
-        # 添加网格线
-        pen = QColor("#cccccc")
-        for x in range(0, 1281, 100):
-            self.addLine(x, 0, x, 600, pen)
+        pen = QPen(Qt.black, 1, Qt.SolidLine)
+        count=0
+        # 添加方块并设置颜色
+        for i in range(0, 1200, 100):
+            for j in range(0, 900, 100):
+                color = QColor(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+                brush = QBrush(color, Qt.SolidPattern)
+                rect = self.addRect(j, i, 80, 80, pen, brush)
+                rect.setZValue(-1)
+                rect.setFlag(QGraphicsItem.ItemIsSelectable)  # 设置可选中
+                count+=1
+                if count >= 10:
+                    break
+            else:
+                continue
 
-        for y in range(0, 601, 100):
-            self.addLine(0, y, 1200, y, pen)
 
 
 class SceneView(QGraphicsView):
@@ -34,6 +41,8 @@ class MainTab(QWidget):
     def __init__(self):
         super().__init__()
 
+
+
         # 创建 QGraphicsScene 和 QGraphicsView
         self.scene = Grid()
         self.view = SceneView(self.scene)
@@ -42,7 +51,12 @@ class MainTab(QWidget):
         layout = QVBoxLayout(self)
         layout.addWidget(self.view)
         self.setLayout(layout)
+    # 连接方块的点击事件
+        self.scene.selectionChanged.connect(self.on_selection_changed)
 
+    def on_selection_changed(self):
+        selected_items = self.scene.selectedItems()
+        print(f"Selected items: {[item.data(0) for item in selected_items]}")
 
 class ProcessTab(QWidget):
     def __init__(self):
