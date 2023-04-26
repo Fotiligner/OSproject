@@ -3,19 +3,45 @@
 import copy
 
 
+class Virtual_Page:    # 一个虚页
+    def __init__(self, frame=-1, valid=-1, entry=-1, visit=-1):
+        self.valid = valid    # 该页是否有效
+        self.frame = frame    # 内存块号
+        self.entry = entry    # 入序
+        self.visit = visit    # 访问
+        self.is_changed = -1
+        self.outaddress = None
+
+    def clr(self):
+        self.valid = -1    # 该页是否有效
+        self.frame = -1    # 内存块号
+        self.entry = -1     # 入序
+        self.visit = -1     # 访问
+        self.is_changed = -1    #修改位
+        self.outaddress = None  #块号
+
+    def getline(self,num):
+        cont=self.content.split(';')
+        return cont[num]
+
+    def getonechar(self,num):
+        if len(self.content)>num:
+            return self.content[num]
+        return False
+
+
 class PageTable:  # 页表
     def __init__(self, max):
 
-        self.table = [[-1, -1, -1, -1, -1, None] for i in range(max)]
-        # 块号、状态位、入序、访问、修改位、外存地址
+        self.table=[Virtual_Page() for i in range(max)]
 
     def delete(self, page_num):  # 清空页表中一页
-        self.table[page_num]=[-1, -1, -1, -1, -1, None]
+        self.table[page_num].clr()
 
     def transform(self, page):
 
         if page < len(self.table):
-            index = self.table[page][0]  # 块号
+            index = self.table[page].outaddress
             return index
         else:
             return -2
@@ -72,7 +98,7 @@ class MemoryManager:
             file_fcb = self.file_module.get_fcb(filename)  # 文件接口
             if file_fcb:
                 disk_loc = file_fcb.disk_loc
-                print("disk_loc", disk_loc)
+                #print("disk_loc", disk_loc)
             else:
                 print("UNFOUNDE FILE !!!!") # 返回错误码
                 return
@@ -83,16 +109,16 @@ class MemoryManager:
                 ptable = PageTable(psize)
                 self.page_tables[pid] = ptable
             for i in range(psize):
-                ptable.table[i][5]=disk_loc[i]
+                ptable.table[i].outaddress = disk_loc[i]
             for i in range(self.pn):
                 if self.physical_memory[i].is_allocated == -1:  # 该页未分配
                     self.physical_memory[i].pid = pid
                     self.physical_memory[i].is_allocated = 2
-                    ptable.table[size-s][0]=i
-                    ptable.table[size-s][1]=1
-                    ptable.table[size - s][2] = 1
+                    ptable.table[size-s].frame = i
+                    ptable.table[size-s].valid=1
+                    ptable.table[size - s].entry = 1
                     self.Fage(size - s, ptable)
-                    self.physical_memory[i].content=self.file_module.disk.read_block(ptable.table[size-s][5])
+                    self.physical_memory[i].content=self.file_module.disk.read_block(ptable.table[size-s].outaddress)
                     # print(self.physical_memory[i].content)
                     s = s-1
                 if s == 0:
@@ -103,12 +129,12 @@ class MemoryManager:
         status = 0
         ptable=self.page_tables[pid]
         for i in range(len(ptable.table)):
-            if ptable.table[i][1] == 1:
+            if ptable.table[i].valid == 1:
                 status = 1
-                b = ptable.table[i][0]
-                if ptable.table[i][4] == 1:  # 有修改，写回外存,给块号和内容
-                    self.file_module.disk.write_block(ptable.table[i][0],
-                            self.physical_memory[ptable.table[i][0]].content)
+                b = ptable.table[i].frame
+                if ptable.table[i].is_changed == 1:  # 有修改，写回外存,给块号和内容
+                    self.file_module.disk.write_block(ptable.table[i].outaddress,
+                            self.physical_memory[ptable.table[i].frame].content)
                 self.physical_memory[b].clr()
                 self.allocated=self.allocated-1
 
@@ -135,10 +161,10 @@ class MemoryManager:
                 block=self.FIFO(ptable)
                 self.Fage(page, ptable)
             self.physical_memory[block].is_allocated = 2
-            self.physical_memory[block].content = self.file_module.disk.read_block(ptable.table[page][5]) # 接口获取页内信息
-            ptable.table[page][0]=block
-            ptable.table[page][1] = 1
-            ptable.table[page][4] = -1
+            self.physical_memory[block].content = self.file_module.disk.read_block(ptable.table[page].outaddress) # 接口获取页内信息
+            ptable.table[page].frame=block
+            ptable.table[page].valid = 1
+            ptable.table[page].is_changed = -1
         elif block>=0:
             if self.schedule == 'LRU':
                 self.Lage(block,ptable)
@@ -164,9 +190,9 @@ class MemoryManager:
                 self.Fage(page, ptable)
             self.physical_memory[block].is_allocated = 2
             self.physical_memory[block].content = self.file_module.disk.read_block(ptable.table[page][5])  # 接口获取页内信息
-            ptable.table[page][0] = block
-            ptable.table[page][1] = 1
-            ptable.table[page][4] = -1
+            ptable.table[page].frame = block
+            ptable.table[page].valid = 1
+            ptable.table[page].is_changed = -1
         elif block>=0:
             if self.schedule == 'LRU':
                 self.Lage(block,ptable)
@@ -174,25 +200,25 @@ class MemoryManager:
 
     def Fage(self,idx,ptable):                      # 用于FIFO记录顺序
         for i in range(len(ptable.table)):
-            if ptable.table[i][1]==1:
-                ptable.table[i][2]+=1
-            ptable.table[idx][2] = 0
+            if ptable.table[i].valid==1:
+                ptable.table[i].entry += 1
+            ptable.table[idx].entry = 0
 
     def Lage(self,idx,ptable):                         # 用于LRU记录顺序
         for i in range(len(ptable.table)):
-            if ptable.table[i][1]==1:
-                ptable.table[i][3]+=1
-            ptable.table[idx][3] = 0
+            if ptable.table[i].vaild==1:
+                ptable.table[i].visit+=1
+            ptable.table[idx].visit = 0
 
     def LRU(self, ptable):
         max=0
         page=0
         for i in range(len(ptable.table)):
-            if ptable.table[i][3]>max:
-                max=ptable.table[i][3]
+            if ptable.table[i].visit>max:
+                max=ptable.table[i].visit
                 page=i
-        if ptable.table[page][4]==1:
-            self.file_module.disk.write_block(ptable.table[page][0], self.physical_memory[ptable.table[page][0]].content)
+        if ptable.table[page].is_changed == 1:
+            self.file_module.disk.write_block(ptable.table[page].outaddress, self.physical_memory[ptable.table[page].frame].content)
         ptable.delete(page)
         return page
 
@@ -200,12 +226,12 @@ class MemoryManager:
         max=0
         page=0
         for i in range(len(ptable.table)):
-            if ptable.table[i][2]>max:
-                max=ptable.table[i][2]
+            if ptable.table[i].entry>max:
+                max=ptable.table[i].entry
                 page=i
-        if ptable.table[page][4] == 1:
-            self.file_module.disk.write_block(self.file_module.disk.database + ptable.table[page][0], \
-                                              self.physical_memory[ptable.table[page][0]].content)
+        if ptable.table[page].is_changed == 1:
+            self.file_module.disk.write_block(self.file_module.disk.database + ptable.table[page].outaddress,
+                                              self.physical_memory[ptable.table[page].frame].content)
         ptable.delete(page)
         return page
 
