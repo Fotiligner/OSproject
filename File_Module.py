@@ -424,14 +424,19 @@ class File_Module:
     def ls(self):
         """
         展示当前目录下的文件。
-        :return:
+        :return:返回文件名和文件类型的列表[[filename1,type1],[filename2,type2]..]
         """
+        ret_list=[]
         for c in self.work_dir.childs:
             if isinstance(c, Dir):
+                node=[c.name,"d"]
                 print('\033[34m' + c.name + '\033[0m', end=' ')
             else:
+                node=[c.name,"f"]
                 print('\033[38m' + c.name + '\033[0m', end=' ')
+            ret_list.append(node)
         print('')
+        return ret_list
 
     def vi(self, name):
         """
