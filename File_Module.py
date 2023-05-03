@@ -33,6 +33,10 @@ class Disk:
         self.file_path = file_path
 
     def init_disk(self):
+        """
+        用于初始化磁盘文件
+        :return:
+        """
         with open(self.file_path, 'w') as f:
             buf = [' ' for _ in range(self.size)]
             buf[self.dir_base * self.blk_size] = '\0'
@@ -40,6 +44,12 @@ class Disk:
             f.write(buf)
 
     def write_block(self, loc, buf):
+        """
+        以块为单位向磁盘文件指定位置写入内容
+        :param loc: 磁盘指定位置
+        :param buf: 需写入内容
+        :return:
+        """
         with open(self.file_path, 'r+') as f:
             f.seek(loc * self.blk_size)
             if len(buf) < self.blk_size:
@@ -48,11 +58,20 @@ class Disk:
                 f.write(buf[:self.blk_size])
 
     def read_block(self, loc):
+        """
+        以块为单位从磁盘文件指定位置读出内容
+        :param loc: 磁盘指定位置
+        :return: 读出的内容
+        """
         with open(self.file_path, 'r') as f:
             f.seek(loc * self.blk_size)
             return f.read(self.blk_size)
 
     def display(self):
+        """
+        用于展示磁盘文件
+        :return:
+        """
         # a+模式下，刚打开时文件指针位置在文件结尾
         with open(self.file_path, 'a+') as f:
             size = f.tell()
@@ -82,12 +101,11 @@ class Disk:
             if cflag == 'y':
                 print(table)
 
-    def display_info(self):
-        print('track_tot_num:', self.track_tot_num)
-        print('sector_per_track:', self.sector_per_track)
-        print('blk_size:', self.blk_size)
-
     def write_super_blk(self):
+        """
+        写入超级块
+        :return:
+        """
         with open(self.file_path, 'r+') as f:
             buf = str(self.track_tot_num) + ' ' + \
                   str(self.sector_per_track) + ' ' + \
@@ -96,6 +114,10 @@ class Disk:
             f.write(buf)
 
     def read_super_blk(self):
+        """
+        读出超级块
+        :return:
+        """
         with open(self.file_path, 'r') as f:
             buf = f.read(self.super_blk_num * self.blk_size)
             info_list = buf.split()
@@ -109,8 +131,9 @@ class Disk:
 
     def disk_alloc(self, num):
         """
-        :param num:
-        :return:
+        分配所需数目的磁盘块。
+        :param num:所需数目。
+        :return:分配的磁盘块的下标列表。
         """
         addr = []
         bitmap = list(self.bitmap)
@@ -160,6 +183,10 @@ class File_Module:
         self.read_dir_tree()
 
     def read_dir_tree(self):
+        """
+        从磁盘中读取目录树到文件系统
+        :return:
+        """
         dir_base = self.disk.dir_base
         blk_size = self.disk.blk_size
         with open(self.disk.file_path, 'r') as f:
@@ -194,6 +221,10 @@ class File_Module:
             index = index + 1
 
     def write_dir_tree(self):
+        """
+        向磁盘中写入目录树。
+        :return:
+        """
         dir_queue = [self.root_dir]
         buf = ''
         while len(dir_queue) > 0:
@@ -217,6 +248,14 @@ class File_Module:
             f.write(buf)
 
     def make_fcb(self, name, disk_addr, size, auth):
+        """
+        创建fcb。
+        :param name: 文件名。
+        :param disk_addr: 初始分配的磁盘块地址。
+        :param size: 初始大小。
+        :param auth: 初始权限。
+        :return: 新创建的fcb节点。
+        """
         new_fcb = FCB(name, disk_addr, size, auth)
         new_fcb.parent = self.work_dir
         self.work_dir.childs.append(new_fcb)
@@ -224,6 +263,11 @@ class File_Module:
         return new_fcb
 
     def del_fcb(self, file_node):
+        """
+        删除fcb
+        :param file_node:指定的fcb。
+        :return:
+        """
         bitmap = list(self.disk.bitmap)
         for loc in file_node.disk_loc:
             bitmap[loc] = '0'
@@ -232,6 +276,11 @@ class File_Module:
         del file_node
 
     def get_fcb(self, file_name):
+        """
+        用于在工作目录寻找fcb节点。
+        :param file_name:
+        :return: 若成功，返回目标fcb节点；若失败，返回None
+        """
         file_node = None
         for c in self.work_dir.childs:
             if isinstance(c, FCB) and c.name == file_name:
@@ -239,12 +288,22 @@ class File_Module:
         return file_node
 
     def make_dir(self, name):
+        """
+        创建目录。
+        :param name:目录名。
+        :return:
+        """
         new_dir = Dir(name)
         new_dir.parent = self.work_dir
         self.work_dir.childs.append(new_dir)
         self.write_dir_tree()
 
     def del_dir(self, dir_node: Dir):
+        """
+        递归删除给定的目录节点。
+        :param dir_node: 给定的目录节点。
+        :return:
+        """
         for c in dir_node.childs:
             if isinstance(c, Dir):
                 self.del_dir(c)
@@ -254,6 +313,11 @@ class File_Module:
         self.write_dir_tree()
 
     def read_file(self, fcb):
+        """
+        读取文件内容。
+        :param fcb:给定的fcb。
+        :return: 返回文件内容，字符串类型。
+        """
         buf = ''
         for i in fcb.disk_loc:
             buf = buf + self.disk.read_block(self.disk.data_base + i)
@@ -263,6 +327,12 @@ class File_Module:
         return buf[:-1]  # 去除末尾的结尾符
 
     def write_file(self, fcb, buf):
+        """
+        写入文件。
+        :param fcb:所需写入的文件fcb节点。
+        :param buf: 所需写入的内容。
+        :return:
+        """
         fcb.size = len(buf)
         buf = buf + '\0'
         new_blk_num = int((fcb.size + 1) / self.disk.blk_size) + 1
@@ -276,9 +346,9 @@ class File_Module:
 
     def find_node(self, path):
         """
-        返回路径所需结点
-        :param path: 文件路径
-        :return: 存在则返回节点，不存在则返回None
+        返回路径所需结点。
+        :param path: 文件路径。
+        :return: 存在则返回节点，不存在则返回None。
         """
         nodes = path.split('/')
         now_dir = self.root_dir
@@ -299,10 +369,9 @@ class File_Module:
 
     def mkdir(self, name):
         """
-        todo:
-        对于是否能够创建目录的异常检测，即目录区是否足够
-        :param name:
-        :return:
+        为shell提供的命令，创建目录。
+        :param name: 目录名。
+        :return: 返回执行结果。
         """
         for c in self.work_dir.childs:
             if isinstance(c, Dir) and c.name == name:
@@ -310,7 +379,14 @@ class File_Module:
         self.make_dir(name)
         return Ret_State.Success
 
-    def touch(self, name, size=0, auth='wrx'):
+    def touch(self, name, size=0, auth='wr-'):
+        """
+        为shell提供的命令，创建文件。
+        :param name: 文件名
+        :param size: 文件大小，默认为0。
+        :param auth: 文件权限，默认为读写。
+        :return: 返回执行结果。
+        """
         for c in self.work_dir.childs:
             if isinstance(c, FCB) and c.name == name:
                 return Ret_State.Error_File_Exist
@@ -322,6 +398,11 @@ class File_Module:
         return Ret_State.Success
 
     def cd(self, dir_name):
+        """
+        进入目录。
+        :param dir_name:所需进入的目录。
+        :return: 返回执行结果。
+        """
         if dir_name == '..':
             temp = self.work_path.split('/')
             self.work_path = '/'.join(temp[:-1])
@@ -341,6 +422,10 @@ class File_Module:
         return Ret_State.Success
 
     def ls(self):
+        """
+        展示当前目录下的文件。
+        :return:
+        """
         for c in self.work_dir.childs:
             if isinstance(c, Dir):
                 print('\033[34m' + c.name + '\033[0m', end=' ')
@@ -349,6 +434,11 @@ class File_Module:
         print('')
 
     def vi(self, name):
+        """
+        修改文件内容。
+        :param name:文件名。
+        :return: 返回执行结果。
+        """
         file_node = None
         for c in self.work_dir.childs:
             if isinstance(c, FCB) and c.name == name:
@@ -382,6 +472,13 @@ class File_Module:
         return Ret_State.Success
 
     def rm(self, name, mode=None):
+        """
+        删除目录或文件。
+        :param name: 所需删除的目录名或文件名。
+        :param mode: 默认删除文件。
+            -r:删除目录
+        :return: 返回执行结果
+        """
         target_node = None
         if mode and mode.count('r') != 0:
             for c in self.work_dir.childs:
@@ -422,8 +519,6 @@ if __name__ == '__main__':
             file_system.write_dir_tree()
         elif cmd[0] == 'display':
             file_system.disk.display()
-        elif cmd[0] == 'display_info':
-            file_system.disk.display_info()
         elif cmd[0] == 'ls':
             file_system.ls()
         elif cmd[0] == 'mkdir':
