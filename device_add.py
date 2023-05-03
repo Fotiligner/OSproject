@@ -1,13 +1,31 @@
 import json
 import os
 
-output_path = 'device.json'
+output_path = 'devices.jsonl'
 
-with open(output_path, mode='w') as writer:
+with open(output_path, mode='a') as writer:
     dict = {}
-    dict['printer'] = 3
-    dict['scanner'] = 4
-    dict['keyboard'] = 2
+    dict['name'] = "printer"
+    dict["count"] = 3
+    dict["type"] = "output"
+
+    data = json.dumps(dict)
+    writer.write(data)
+
+with open(output_path, mode='a') as writer:
+    dict = {}
+    dict['name'] = "scanner"
+    dict["count"] = 4
+    dict["type"] = "input"
+
+    data = json.dumps(dict)
+    writer.write(data)
+
+with open(output_path, mode='a') as writer:
+    dict = {}
+    dict['name'] = "keyboard"
+    dict["count"] = 3
+    dict["type"] = "input"
 
     data = json.dumps(dict)
     writer.write(data)

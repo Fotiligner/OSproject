@@ -6,11 +6,18 @@ import Scheduler
 import Process_Utils
 import copy
 
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+
 from IO_Module import IO_Module
 
 
 
 from IO_Module import IO_Module
+
+# 初始化甘特图绘图函数
+plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
+plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 
 class PCB:
     def __init__(self, pid, start_time, parent_pid=None,
@@ -36,31 +43,10 @@ class PCB:
 
         self.command_already_time = 0
         self.final_time = 0
-
-        # self.last_time = last_time
-        # self.event = None
-        # self.content=content
-        # # todo 消息队列指针/信号量
-        # self.size=size
-        # self.next_ptr= None
-        # self.pc_time = 0
-        # self.PSW=PSW
-        # self.user_ptr=user_ptr
         self.last_time = 0
 
-        # 有一个问题，last time 是没有办法通过这种方式提前预知和计算的，因为要时刻从内存中进行读取
-        # for command in content.split(';'):
-        #     info = command.split( )
-        #     info[-1] = int(info[-1])
-        #     self.last_time += info[-1]
-        #     self.command_queue.append(info)
-        #print(self.command_queue)
-
-        # self.show_pcb()
-
-        # self.processor=processor
-        # self.nice = 1
-        # self.type = type #区分是CPU密集型还是IO型, 0代表CPU, 1代表IO
+        # 新增甘特图辅助列表，记录进程所有running状态的开始和结束情况
+        self.gantt_list = []    # 数字列表，结果为一个开始时间一个结束时间,后期考虑添加
 
     def update(self, pid, start_time, parent_pid=None,
                  child_pid=None,
@@ -72,7 +58,6 @@ class PCB:
         self.child_pid = child_pid
 
         self.pc = "00000"   # 指向当前的执行代码行数，实际上可以用逻辑地址来代替
-        # self.pc_end =  pc_end   # 结束地址
 
         self.status = "ready"
         self.priority = priority
@@ -81,31 +66,9 @@ class PCB:
         self.already_time = 0    # 指在进程真正运行的时间内已经运行的时间
         self.command_queue = []
         self.page_allocated = 0     # 虚拟内存分配的页数
-
-
-        # self.last_time = last_time
-        # self.event = None
-        # self.content=content
-        # # todo 消息队列指针/信号量
-        # self.size=size
-        # self.next_ptr= None
-        # self.pc_time = 0
-        # self.PSW=PSW
-        # self.user_ptr=user_ptr
         self.last_time = 0
+        self.gantt_list = []
 
-        # 有一个问题，last time 是没有办法通过这种方式提前预知和计算的，因为要时刻从内存中进行读取
-        # for command in content.split(';'):
-        #     info = command.split( )
-        #     info[1] = int(info[1])
-        #     self.last_time += info[1]
-        #     self.command_queue.append(info)
-        # #print(self.command_queue)
-        # self.show_pcb()
-
-        # self.processor=processor
-        # self.nice = 1
-        # self.type = type #区分是CPU密集型还是IO型, 0代表CPU, 1代表IO
     def show_pcb(self):
         print("在" + str(current_time) + "时刻创建了进程" + str(self.pid) + ",优先级为" + str(
             self.priority) + ",pc_end=" + str(self.pc_end) +", pc= "+str(self.pc))
@@ -119,7 +82,6 @@ def clock():  #  模拟时钟
     global current_time
     while clock_running:
         e.clear()   # 置为False
-        # print(current_time)
         time.sleep(0.25)
         current_time +=1
         e.set()     # 置为True
@@ -129,9 +91,7 @@ clocking = Thread(target=clock)
 clocking.setDaemon(True)
 clocking.start()  # 创建一个计数器线程
 
-
 # event类似于信号量，赋值True和False
-
 
 class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils.Process_Utils):  # 多继承
     def __init__(self, memory_module):
@@ -191,7 +151,6 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
             print(f"[error] {file_name} is not an executable file")
 
     def add_pc(self, pc):
-        # pc = "abcde"
         pc_front = pc[:2]
         pc_back = pc[2:]
 
@@ -208,6 +167,14 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
             pc_front = pc[:2]
         return pc_front + pc_back
 
+    def set_start(self, running_pid, time):   # 更新对应进程gantt_list
+        if running_pid != -1:
+            self.pcb_pool[self.loc_pid_inPool(self.running_pid)].gantt_list.append([time])   # 重新开始一个时间
+
+    def set_end(self, running_pid, time):
+        if running_pid != -1:
+            self.pcb_pool[self.loc_pid_inPool(self.running_pid)].gantt_list[-1].append(time)   # 逻辑不一样，记录ending的时间
+
     def run(self):  # 模拟进程调度程序,run是threading.Thread中的重载函数
         target = True   # 进程时钟控制辅助指标
         while self.executing:
@@ -216,6 +183,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
                 #self.print_status()
                 if(self.running_pid == -1):  # 如果当前没有进程,先调度一个进程再开始运行
                     self.scheduler("no running")
+                    self.set_start(self.running_pid, current_time)
                 if(self.running_pid != -1):
                     ## 向内存中要一段代码的位置 传递过去pid和程序计数器pc  返回一个字符串  需要提前定义好一行指令的大小
                     ## 下面这行代码会放入内存取地址的内容
@@ -264,13 +232,16 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
             elif not e.is_set():           # 进入中断
                 e.wait()  # 正在阻塞状态,当event变为True时就激活
                 #print("一个原子时间结束,启动调度算法")
+                self.set_end(self.running_pid, current_time)
                 self.scheduler("time")  # 进程抢占在这里完成
+                self.set_start(self.running_pid, current_time)
                 target = True
 
     def io_interrupt(self, type):
         print("产生" + type + "中断")
         self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "waiting"   # 更改PCB状态
         self.waiting_queue.append(self.running_pid)   # 更改waiting队列状态
+        self.set_end(self.running_pid, current_time)  # 更新结束时间
         self.running_pid = -1   # 将当前的running 进程取消状态，便于之后scheduler
     def command_running(self, command):
         if command[0] == "cpu":   # 普通cpu时间，理论上只可能是cpu 1
@@ -304,6 +275,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
             pass
         elif command[0] == "exit":
             if self.running_pid != -1:
+                self.set_end(self.running_pid, current_time)
                 print("在" + str(current_time) + "时刻" + "进程" + str(
                     self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid) + "运行结束")
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].final_time = current_time
@@ -330,6 +302,8 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
         self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "terminated" #把当前进程改成中止
         self.running_pid = -1  # 把当前运行的改为没有
 
+        self.gantt_graph()
+
     ## 使用kill命令终止的函数 感觉其实也没有太多变化
     def kill_process(self,pid):   # 注意，不一定是将当前运行的进程kill掉，所以要区别running_pid的使用情况
         if pid in self.ready_queue:
@@ -348,6 +322,29 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
             self.running_pid = -1  # 把当前运行的改为没有
 
         print("在" + str(current_time) + "时刻" + "进程" + str(pid) + "被杀死")
+
+    def gantt_graph(self):
+        plt.figure(figsize=(20, 14), dpi=100)
+        plt.title("Facos进程运行甘特图", fontsize=30)
+
+        color = ['b', 'g', 'r', 'y', 'c', 'm', 'k']
+
+        for index, process in enumerate(self.pcb_pool):
+            for span in process.gantt_list:
+                plt.barh(index, width=span[1] - span[0] + 1, left=span[0], color=color[index])
+
+        # labels = [''] * len(add[0])
+        # # 设置刻度字体大小
+        # plt.xticks(range(50), rotation=0, fontsize=20)
+        # plt.yticks(m, fontsize=20)
+        # labels = ['t0', 't1', 't2']
+        # # 图例绘制
+        # patches = [mpatches.Patch(color=color[i], label="{:s}".format(labels[i])) for i in range(len(add[0]))]
+        # plt.legend(handles=patches, loc=4, fontsize=25)
+        # plt.ylabel(" ", fontsize=30)
+        # # XY轴标签
+        # plt.xlabel("运行时间/s", fontsize=30)
+        plt.savefig("test.png")
 
 if __name__ == '__main__':
     e = Event()  # 默认False

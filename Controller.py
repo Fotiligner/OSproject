@@ -3,7 +3,7 @@ from time import sleep
 from Command import Command_Moduler
 from Process_Module import Process_Module, clock_running
 from File_Module import File_Module, Ret_State
-from memo import MemoryManager
+from memo_test import MemoryManager
 import threading
 from threading import Event, Thread, current_thread
 import time
@@ -142,10 +142,12 @@ class Controller:
                             ret_code=self.file_module.rm(mode=command[1],name=command[2])
                         self.print_error_info("rm error", ret_code=ret_code)
 
+                elif command[0] == "kill":
+                    self.process_module.kill_process(int(command[1]))
+
                 elif command[0] == "exit":
                     self.process_module.executing = False
                     return
-
 
 if __name__ == '__main__':
     os_controller = Controller()

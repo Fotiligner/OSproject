@@ -121,6 +121,9 @@ class MemoryManager:
                     self.physical_memory[i].content=self.file_module.disk.read_block(ptable.table[size-s].outaddress)
                     # print(self.physical_memory[i].content)
                     s = s-1
+                    if size - s >= psize:
+                        break
+
                 if s == 0:
                     break
             return psize
@@ -168,6 +171,7 @@ class MemoryManager:
         elif block>=0:
             if self.schedule == 'LRU':
                 self.Lage(block,ptable)
+        print("缺页中断")
         return self.physical_memory[block].getonechar(page_offset)
 
     def page_PC(self, pid, address):
