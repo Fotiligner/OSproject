@@ -188,6 +188,11 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
                     ## 向内存中要一段代码的位置 传递过去pid和程序计数器pc  返回一个字符串  需要提前定义好一行指令的大小
                     ## 下面这行代码会放入内存取地址的内容
                     command = self.memory_module.page_PC(self.running_pid, self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc).split()
+
+                    # 这里需要判断是否缺页，缺页则直接中断，放入waiting_list中，同时在一个周期之后从waiting调入ready状态，其实当前时刻内存是已经将缺的页数放入了
+                    # 如何确定fork无限不停止的问题？
+                    # fork维持当前的pc指针？创建新的程序进入内存？执行fork指令之后所有的新指令
+
                     print(command)
                     # command = self.pcb_pool[self.loc_pid_inPool(self.running_pid)].command_queue[self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc]   # 从内存中获得的file 4.2 暂时修改了下
                     self.command_running(command)
@@ -272,6 +277,8 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
             self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc = self.add_pc(
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)  # 指令行数增加，指向下一条指令
         elif command[0] == "read" or command[0] == "write":
+            pass
+        elif command[0] == "fork":
             pass
         elif command[0] == "exit":
             if self.running_pid != -1:

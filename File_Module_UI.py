@@ -4,6 +4,9 @@ from PyQt5.Qt import Qt
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QPainter, QBrush, QColor, QPen, QIcon, QCursor, QPixmap
 
+# 测试designer创建界面
+from main_test import Ui_MainWindow
+
 from File_Module import File_Module, Ret_State
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QGraphicsView, \
     QGraphicsScene, QGraphicsItem, QGraphicsProxyWidget, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
@@ -142,7 +145,7 @@ class MainTab(QWidget):
     def __init__(self):
         super().__init__()
         self.scene = GridScene()
-        self.view = MyView(self.scene)
+        self.view = MyView(self.scene)  # view搭配scene
         layout = QVBoxLayout(self)
         layout.addWidget(self.view)
         self.setLayout(layout)
@@ -225,8 +228,20 @@ class MyMainWindow(QMainWindow):
         self.setWindowTitle("操作系统模拟")
 
 
+# if __name__ == '__main__':
+#     app = QApplication(sys.argv)
+#     window = MyMainWindow()   # 主界面
+#     window.show()
+#     sys.exit(app.exec_())
+
+# 新ui主函数
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = MyMainWindow()
+    #window = MyMainWindow()   # 主界面
+    window = QMainWindow()
+    ui = Ui_MainWindow()
+    ui.tab1 = MainTab()   # 所有原件需要在setup前初始化
+    ui.tab2 = ProcessTab()
+    ui.setupUi(window)
     window.show()
     sys.exit(app.exec_())
