@@ -8,7 +8,7 @@ class Command_Moduler:
         self.print_info()
 
     def print_info(self):
-        print('COS starts ', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        print('FACOS starts ', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
     def get_command_list(self, user, path):  # , cwd, file_list):
         output_list = []

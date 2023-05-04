@@ -240,8 +240,8 @@ if __name__ == '__main__':
     #window = MyMainWindow()   # 主界面
     window = QMainWindow()
     ui = Ui_MainWindow()
-    ui.tab1 = MainTab()   # 所有原件需要在setup前初始化
-    ui.tab2 = ProcessTab()
+    ui.tab = MainTab()   # 所有原件需要在setup前初始化
+    ui.tab_2 = ProcessTab()
     ui.setupUi(window)
     window.show()
     sys.exit(app.exec_())
