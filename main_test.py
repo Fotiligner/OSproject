@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBo
     QGraphicsScene, QGraphicsItem, QGraphicsProxyWidget, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
     QPushButton
 
-from File_Module_UI import MainTab, ProcessTab
+from UI.File_Module_UI import MainTab, ProcessTab
 
 
 class Ui_MainWindow(object):

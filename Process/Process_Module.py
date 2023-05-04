@@ -107,7 +107,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
         #self.schedule_type = args.schedule_type   # "multi_feedback_queue"  "single_queue"
         #self.schedule_algorithm = args.schedule_algorithm  # 仅在single_queue下生效
 
-        self.io_module = IO_Module('device.json')
+        self.io_module = IO_Module('../device.json')
         self.memory_module = memory_module
 
         self.page_per_process = 3

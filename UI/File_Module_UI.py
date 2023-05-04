@@ -3,6 +3,7 @@ import random
 from PyQt5.Qt import Qt
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QPainter, QBrush, QColor, QPen, QIcon, QCursor, QPixmap
+import Process_Module_UI
 
 # 测试designer创建界面
 # from main_test import Ui_MainWindow
@@ -13,8 +14,8 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBo
     QPushButton
 
 file_count = 20
-scene_width = 1200
-scene_height = 900
+scene_width = 700    #原来是1200
+scene_height = 350   #原来是900
 icon_size = 90
 box_size = 100
 
@@ -200,15 +201,6 @@ class MainTab(QWidget):
         self.view.file_module.cd("..")
         self.view.ui_ls()
 
-
-# 进程模块的TAB
-class ProcessTab(QWidget):
-    def __init__(self):
-        super().__init__()
-        layout = QVBoxLayout()
-        label = QLabel("进程模块,以后再做, 欸嘿")
-        layout.addWidget(label)
-        self.setLayout(layout)
 
 
 class MyMainWindow(QMainWindow):
