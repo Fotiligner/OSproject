@@ -1,21 +1,21 @@
 import sys, os
-import random
 from PyQt5.Qt import Qt
-from PyQt5.QtCore import QSize
-from PyQt5.QtGui import QPainter, QBrush, QColor, QPen, QIcon, QCursor, QPixmap
+from PyQt5.QtGui import QPainter, QIcon, QCursor, QPixmap
 import Process_Module_UI
 
 # 测试designer创建界面
 # from main_test import Ui_MainWindow
 
-from File_Module import File_Module, Ret_State
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QGraphicsView, \
-    QGraphicsScene, QGraphicsItem, QGraphicsProxyWidget, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
+from File_Module import File_Module
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QGraphicsView, \
+    QGraphicsScene, QGraphicsItem, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
     QPushButton
 
+#from UI.main_test import Ui_MainWindow
+
 file_count = 20
-scene_width = 700    #原来是1200
-scene_height = 350   #原来是900
+scene_width = 1200
+scene_height = 900
 icon_size = 90
 box_size = 100
 
@@ -209,7 +209,7 @@ class MyMainWindow(QMainWindow):
         self.tabs = QTabWidget(self)
         # 添加标签页
         self.tab1 = MainTab()
-        self.tab2 = ProcessTab()
+        self.tab2 = Process_Module_UI.ProcessTab()
         self.tabs.addTab(self.tab1, "首页")
         self.tabs.addTab(self.tab2, "进程模块")
         self.setCentralWidget(self.tabs)
@@ -231,9 +231,9 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     #window = MyMainWindow()   # 主界面
     window = QMainWindow()
-    ui = Ui_MainWindow()
+    #ui = Ui_MainWindow()
     ui.tab = MainTab()   # 所有原件需要在setup前初始化
-    ui.tab_2 = ProcessTab()
+    ui.tab_2 = Process_Module_UI.ProcessTab()
     ui.setupUi(window)
     window.show()
     sys.exit(app.exec_())

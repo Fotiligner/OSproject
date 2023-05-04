@@ -19,7 +19,8 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBo
     QGraphicsScene, QGraphicsItem, QGraphicsProxyWidget, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
     QPushButton
 
-from UI.File_Module_UI import MainTab, ProcessTab
+from UI.File_Module_UI import MainTab
+import Process_Module_UI
 
 
 class Ui_MainWindow(object):
@@ -65,7 +66,7 @@ if __name__ == '__main__':
     window = QMainWindow()
     ui = Ui_MainWindow()
     ui.tab = MainTab()   # 所有原件需要在setup前初始化
-    ui.tab_2 = ProcessTab()
+    ui.tab_2 = Process_Module_UI.ProcessTab()
     ui.setupUi(window)
     window.show()
     sys.exit(app.exec_())
