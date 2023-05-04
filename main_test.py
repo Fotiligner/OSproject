@@ -9,6 +9,17 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import sys, os
+import random
+from PyQt5.Qt import Qt
+from PyQt5.QtCore import QSize
+from PyQt5.QtGui import QPainter, QBrush, QColor, QPen, QIcon, QCursor, QPixmap
+
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QGraphicsView, \
+    QGraphicsScene, QGraphicsItem, QGraphicsProxyWidget, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
+    QPushButton
+
+from File_Module_UI import MainTab, ProcessTab
 
 
 class Ui_MainWindow(object):
@@ -47,3 +58,14 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("MainWindow", "主界面"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("MainWindow", "进程信息展示"))
         self.pushButton.setText(_translate("MainWindow", "运行"))
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    #window = MyMainWindow()   # 主界面
+    window = QMainWindow()
+    ui = Ui_MainWindow()
+    ui.tab = MainTab()   # 所有原件需要在setup前初始化
+    ui.tab_2 = ProcessTab()
+    ui.setupUi(window)
+    window.show()
+    sys.exit(app.exec_())

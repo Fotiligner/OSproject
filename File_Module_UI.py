@@ -5,7 +5,7 @@ from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QPainter, QBrush, QColor, QPen, QIcon, QCursor, QPixmap
 
 # 测试designer创建界面
-from main_test import Ui_MainWindow
+# from main_test import Ui_MainWindow
 
 from File_Module import File_Module, Ret_State
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QGraphicsView, \
