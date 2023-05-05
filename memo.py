@@ -41,7 +41,7 @@ class PageTable:  # 页表
     def transform(self, page):
 
         if page < len(self.table):
-            index = self.table[page].outaddress
+            index = self.table[page].frame
             return index
         else:
             return -2

@@ -183,12 +183,17 @@ class MainTab(QWidget):
             action_touch = QAction(QIcon('./UI/image/touch.png'), u'新建文件', self)  # 创建菜单选项对象
             action_mkdir = QAction(QIcon('./UI/image/mkdir.png'), u'新建文件夹', self)
             action_back = QAction(QIcon('./UI/image/back.png'), u'返回上一级', self)
+            action_cmd = QAction(QIcon('./UI/image/back.png'), u'控制台输出', self)
+
             groupBox_menu.addAction(action_back)
             groupBox_menu.addAction(action_touch)  # 把动作对象添加到菜单上
             groupBox_menu.addAction(action_mkdir)
+            groupBox_menu.addAction(action_cmd)
+
             action_back.triggered.connect(self.ui_back)
             action_touch.triggered.connect(self.ui_touch)
             action_mkdir.triggered.connect(self.ui_mkdir)
+            action_mkdir.triggered.connect(self.ui_cmd)
         else:
             action_delete = QAction(QIcon('./UI/image/delete.png'),u'删除', self)
             groupBox_menu.addAction(action_delete)
