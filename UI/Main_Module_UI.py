@@ -1,7 +1,6 @@
 import sys, os
 from PyQt5.Qt import Qt
 from PyQt5.QtGui import QPainter, QIcon, QCursor, QPixmap
-import Process_Module_UI
 
 # 测试designer创建界面
 # from main_test import Ui_MainWindow
@@ -28,9 +27,9 @@ class FileNode(QGraphicsPixmapItem):
         self.node_type = node_type
         self.node_name = node_name
         if node_type == 'd':
-            self.pix = QPixmap("image/dir.png")
+            self.pix = QPixmap("./UI/image/dir.png")
         elif node_type == 'f':
-            self.pix = QPixmap("image/file.png")
+            self.pix = QPixmap("./UI/image/file.png")
         self.width = icon_size
         self.height = icon_size
         self.pix = self.pix.scaled(self.width, self.height)
@@ -63,13 +62,13 @@ class GridScene(QGraphicsScene):
 
 
 class MyView(QGraphicsView):  # 视图创建 为grid提供场景
-    def __init__(self, scene, parent=None):
+    def __init__(self, scene, file_module, parent=None):
         super().__init__(parent)
 
         self.parent = parent
         self.scene = scene
         self.disk_path = os.path.abspath(r".") + "\\MYDISK"
-        self.file_module = File_Module(self.disk_path)
+        self.file_module = file_module
         self.layout = QVBoxLayout()
 
         self.setSceneRect(0, 0, scene_width, scene_height)
@@ -143,10 +142,10 @@ class MyView(QGraphicsView):  # 视图创建 为grid提供场景
 
 # 主页, 文件系统的tab
 class MainTab(QWidget):
-    def __init__(self):
+    def __init__(self, file_module, process_module):
         super().__init__()
         self.scene = GridScene()
-        self.view = MyView(self.scene)  # view搭配scene
+        self.view = MyView(self.scene, file_module)  # view搭配scene
         layout = QVBoxLayout(self)
         layout.addWidget(self.view)
         self.setLayout(layout)
@@ -162,9 +161,9 @@ class MainTab(QWidget):
         groupBox_menu = QMenu(self)
         selected_items = self.scene.selectedItems()
         if len(selected_items) == 0:
-            action_touch = QAction(QIcon('image/touch.png'), u'新建文件', self)  # 创建菜单选项对象
-            action_mkdir = QAction(QIcon('image/mkdir.png'), u'新建文件夹', self)
-            action_back = QAction(QIcon('image/back.png'), u'返回上一级', self)
+            action_touch = QAction(QIcon('./UI/image/touch.png'), u'新建文件', self)  # 创建菜单选项对象
+            action_mkdir = QAction(QIcon('./UI/image/mkdir.png'), u'新建文件夹', self)
+            action_back = QAction(QIcon('./UI/image/back.png'), u'返回上一级', self)
             groupBox_menu.addAction(action_back)
             groupBox_menu.addAction(action_touch)  # 把动作对象添加到菜单上
             groupBox_menu.addAction(action_mkdir)
@@ -172,7 +171,7 @@ class MainTab(QWidget):
             action_touch.triggered.connect(self.ui_touch)
             action_mkdir.triggered.connect(self.ui_mkdir)
         else:
-            action_delete = QAction(QIcon('image/delete.png'),u'删除', self)
+            action_delete = QAction(QIcon('./UI/image/delete.png'),u'删除', self)
             groupBox_menu.addAction(action_delete)
             action_delete.triggered.connect(lambda: self.ui_delete(selected_items))
         groupBox_menu.exec_(QCursor.pos())  # 声明当鼠标在groupBox控件上右击时，在鼠标位置显示右键菜单   ,exec_,popup两个都可以，

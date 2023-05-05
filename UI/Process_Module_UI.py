@@ -3,7 +3,7 @@ import random
 from PyQt5.Qt import Qt
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QPainter, QBrush, QColor, QPen, QIcon, QCursor, QPixmap
-import Process_Module_UI
+import UI.Process_Module_UI as Process_Module_UI
 
 from File_Module import File_Module, Ret_State
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QGraphicsView, \

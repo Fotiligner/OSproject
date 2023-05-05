@@ -19,8 +19,8 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBo
     QGraphicsScene, QGraphicsItem, QGraphicsProxyWidget, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
     QPushButton
 
-from UI.File_Module_UI import MainTab
-import Process_Module_UI
+from UI.Main_Module_UI import MainTab
+import UI.Process_Module_UI as Process_Module_UI
 
 
 class Ui_MainWindow(object):
