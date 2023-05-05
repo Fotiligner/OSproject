@@ -48,6 +48,8 @@ class PCB:
         # 新增甘特图辅助列表，记录进程所有running状态的开始和结束情况
         self.gantt_list = []    # 数字列表，结果为一个开始时间一个结束时间,后期考虑添加
 
+
+
     def update(self, pid, start_time, parent_pid=None,
                  child_pid=None,
                  already_time=None,
@@ -279,7 +281,10 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
         elif command[0] == "read" or command[0] == "write":
             pass
         elif command[0] == "fork":
-            pass
+            type, self.current_pid = self.getCurrentpid()  # 从success里调到外，可能有bug
+
+            alloc_output = self.memory_module.alloc(self.current_pid, self.page_per_process, file_name)
+
         elif command[0] == "exit":
             if self.running_pid != -1:
                 self.set_end(self.running_pid, current_time)

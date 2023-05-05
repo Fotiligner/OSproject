@@ -3,7 +3,7 @@ from time import sleep
 from Command import Command_Moduler
 from Process.Process_Module import Process_Module, clock_running
 from File_Module import File_Module, Ret_State
-from memo_test import MemoryManager
+from memo import MemoryManager
 import threading
 from threading import Event, Thread, current_thread
 import time
