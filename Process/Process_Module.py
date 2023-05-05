@@ -20,11 +20,11 @@ plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
 plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 
 class PCB:
-    def __init__(self, pid, start_time, parent_pid=None,
+    def __init__(self, pid, start_time,file_name, parent_pid=None,
                  child_pid=None,
                  already_time=None,
                  waiting_time=None, priority=None,
-                 page_allocated=[], pc_end=None, content=""
+                 page_allocated=[], pc_end=None, content="",
                  ):
         self.pid = pid
         self.parent_pid = parent_pid
@@ -48,9 +48,10 @@ class PCB:
         # 新增甘特图辅助列表，记录进程所有running状态的开始和结束情况
         self.gantt_list = []    # 数字列表，结果为一个开始时间一个结束时间,后期考虑添加
 
+        #  新加进来这个 进程附属的文件名  用于fork函数  到时候内存申请使用的
+        self.file_name = file_name
 
-
-    def update(self, pid, start_time, parent_pid=None,
+    def update(self, pid, start_time,file_name ,parent_pid=None,
                  child_pid=None,
                  already_time=None,
                  waiting_time=None, priority=None,
@@ -70,6 +71,8 @@ class PCB:
         self.page_allocated = 0     # 虚拟内存分配的页数
         self.last_time = 0
         self.gantt_list = []
+
+        self.file_name = file_name
 
     def show_pcb(self):
         print("在" + str(current_time) + "时刻创建了进程" + str(self.pid) + ",优先级为" + str(
@@ -115,6 +118,8 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
         self.page_per_process = 3
         self.command_per_page = 5
 
+        self.chd_pid = 0
+
 
     # def init_process_module(self):
 
@@ -137,12 +142,12 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 if(type == "new"): #如果是个新PCB,也就是老PCB都没有终止
                     self.pcb_pool.append(PCB(self.current_pid, parent_pid=-1, \
                                              child_pid=-1, priority=priority, start_time=current_time, \
-                                             page_allocated=alloc_output))  #pc_end=2 , content = "cpu 2;output printer asdfasdf 3;cpu 3"))   # 暂时
+                                             page_allocated=alloc_output),file_name= file_name)  #pc_end=2 , content = "cpu 2;output printer asdfasdf 3;cpu 3"))   # 暂时
                     self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
                 elif(type == "old"):
                     self.pcb_pool[self.loc_pid_inPool(self.current_pid)].update(self.current_pid, parent_pid=-1, \
                                              child_pid=-1, priority=priority, start_time=current_time, \
-                                             page_allocated=alloc_output) #pc_end=1 , content = "cpu 2;cpu 3")
+                                             page_allocated=alloc_output,file_name=file_name) #pc_end=1 , content = "cpu 2;cpu 3")
                     self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
             else: # 内存分配不成功
                 if alloc_output == -2:
@@ -197,7 +202,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
 
                     print(command)
                     # command = self.pcb_pool[self.loc_pid_inPool(self.running_pid)].command_queue[self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc]   # 从内存中获得的file 4.2 暂时修改了下
-                    self.command_running(command)
+                    self.command_running(command,self.running_pid)
 
                 # 注意，不可以在io中断的时候更新pc，不然这里就会直接释放进程，顺序问题一定要搞清楚
                 # io遍历和io进程的问题
@@ -250,7 +255,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
         self.waiting_queue.append(self.running_pid)   # 更改waiting队列状态
         self.set_end(self.running_pid, current_time)  # 更新结束时间
         self.running_pid = -1   # 将当前的running 进程取消状态，便于之后scheduler
-    def command_running(self, command):
+    def command_running(self, command,running_pid):
         if command[0] == "cpu":   # 普通cpu时间，理论上只可能是cpu 1
             time = int(command[1])
             self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1  # 进程进度加一（already_time）
@@ -281,9 +286,13 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
         elif command[0] == "read" or command[0] == "write":
             pass
         elif command[0] == "fork":
-            type, self.current_pid = self.getCurrentpid()  # 从success里调到外，可能有bug
 
-            alloc_output = self.memory_module.alloc(self.current_pid, self.page_per_process, file_name)
+            type, self.chd_pid = self.getCurrentpid()  # 从success里调到外，可能有bug
+            if running_pid != -1:
+                name_of_file =self.pcb_pool[self.loc_pid_inPool(self.running_pid)].file_name
+            alloc_output = self.memory_module.alloc(self.chd_pid, self.page_per_process,name_of_file )
+            if alloc_output >= 0:  # 内存分配成功
+                
 
         elif command[0] == "exit":
             if self.running_pid != -1:
