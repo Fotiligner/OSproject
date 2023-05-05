@@ -28,9 +28,26 @@ class Main_Board(QMainWindow, Ui_MainWindow):
         self.tab = MainTab(os_controller.file_module, os_controller.process_module)   # 所有原件需要在setup前初始化
         self.tab_2 = Process_Module_UI.ProcessTab()
         self.setupUi(self)
+        self.tabWidget.setGeometry(QtCore.QRect(20, 40, 1161, 800))
+        self.textBrowser.setVisible(False)
+
+        self.tab.action_cmd.triggered.connect(self.ui_cmd)
+        self.tab_visible = False
+
         # 下面将输出重定向到textBrowser中
         sys.stdout = EmittingStr(textWritten=self.outputWritten)
         sys.stderr = EmittingStr(textWritten=self.outputWritten)
+
+    def ui_cmd(self):  # 调整主界面可视化
+        if not self.tab_visible:
+            self.tab_visible = True
+            self.textBrowser.setVisible(True)
+            self.tabWidget.setGeometry(QtCore.QRect(20, 40, 1161, 571))
+        else:
+            self.tab_visible = False
+            self.textBrowser.setVisible(False)
+            self.tabWidget.setGeometry(QtCore.QRect(20, 40, 1161, 800))
+
 
     def outputWritten(self, text):
         cursor = self.textBrowser.textCursor()
