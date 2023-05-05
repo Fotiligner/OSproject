@@ -1,8 +1,11 @@
 
 from PyQt5.Qt import Qt
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QGraphicsView, \
     QGraphicsScene, QGraphicsItem, QGraphicsProxyWidget, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
     QPushButton, QHBoxLayout, QScrollArea, QSizePolicy, QLineEdit
+
+import Process.Process_Module
 
 # 进程模块的TAB
 import sys
@@ -23,7 +26,16 @@ class currentStatusLabel(QLabel):
     def __init__(self, text):
         super().__init__()
         self.setText("当前时刻:0")
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.updateText)
+        self.timer.start(100)
 
+    def updateText(self):
+        # 获取另一个类中的变量的值
+        value = Process.Process_Module.current_time
+
+        # 更新当前StatusLabel的文本属性
+        self.setText(f"当前时刻:{value}")
 
 
 
