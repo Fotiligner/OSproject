@@ -353,6 +353,21 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
         # plt.xlabel("运行时间/s", fontsize=30)
         plt.savefig("test.png")
 
+    def create_process_test(self, priority=None, alloc_output=None):
+        type, self.current_pid = self.getCurrentpid()  # 从success里调到外，可能有bug
+        if (type == "new"):  # 如果是个新PCB,也就是老PCB都没有终止
+            self.pcb_pool.append(PCB(self.current_pid, parent_pid=-1, \
+                                     child_pid=-1, priority=priority, start_time=current_time, \
+                                     page_allocated=alloc_output))  # pc_end=2 , content = "cpu 2;output printer asdfasdf 3;cpu 3"))   # 暂时
+            self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
+        elif (type == "old"):
+            self.pcb_pool[self.loc_pid_inPool(self.current_pid)].update(self.current_pid, parent_pid=-1, \
+                                                                        child_pid=-1, priority=priority,
+                                                                        start_time=current_time, \
+                                                                        page_allocated=alloc_output)  # pc_end=1 , content = "cpu 2;cpu 3")
+            self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
+
+
 if __name__ == '__main__':
     e = Event()  # 默认False
     Thread(target=clock).start()  # 创建一个计数器线程
