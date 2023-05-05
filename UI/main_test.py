@@ -9,15 +9,7 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-import sys, os
-import random
-from PyQt5.Qt import Qt
-from PyQt5.QtCore import QSize
-from PyQt5.QtGui import QPainter, QBrush, QColor, QPen, QIcon, QCursor, QPixmap
-
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QGraphicsView, \
-    QGraphicsScene, QGraphicsItem, QGraphicsProxyWidget, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
-    QPushButton
+from UI.Main_Module_UI import EmittingStr
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -29,7 +21,7 @@ class Ui_MainWindow(object):
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.tabWidget = QtWidgets.QTabWidget(self.centralwidget)
-        self.tabWidget.setGeometry(QtCore.QRect(20, 40, 1141, 561))
+        self.tabWidget.setGeometry(QtCore.QRect(20, 40, 1161, 571))
         self.tabWidget.setObjectName("tabWidget")
         #self.tab = QtWidgets.QWidget()
         self.tab.setObjectName("tab")
@@ -37,9 +29,9 @@ class Ui_MainWindow(object):
         #self.tab_2 = QtWidgets.QWidget()
         self.tab_2.setObjectName("tab_2")
         self.tabWidget.addTab(self.tab_2, "")
-        self.pushButton = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton.setGeometry(QtCore.QRect(740, 640, 151, 81))
-        self.pushButton.setObjectName("pushButton")
+        self.textBrowser = QtWidgets.QTextBrowser(self.centralwidget)
+        self.textBrowser.setGeometry(QtCore.QRect(20, 640, 1161, 211))
+        self.textBrowser.setObjectName("textBrowser")
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -54,5 +46,3 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "操作系统模拟软件"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("MainWindow", "主界面"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("MainWindow", "进程信息展示"))
-        self.pushButton.setText(_translate("MainWindow", "运行"))
-

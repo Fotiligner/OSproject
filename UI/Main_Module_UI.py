@@ -1,5 +1,6 @@
 import sys, os
 from PyQt5.Qt import Qt
+from PyQt5 import QtCore, QtGui
 from PyQt5.QtGui import QPainter, QIcon, QCursor, QPixmap
 
 # 测试designer创建界面
@@ -20,6 +21,22 @@ box_size = 100
 
 
 # UI部件应该只能包含节点的文件名（目录名），为调用文件模块函数提供参数即可。UI只负责绘画。
+
+class EmittingStr(QtCore.QObject):
+    textWritten = QtCore.pyqtSignal(str)  # 定义一个发送str的信号
+    def write(self, text, ui):
+        self.textWritten.emit(str(text))
+        loop = QEventLoop()
+        QTimer.singleShot(100, loop.quit)
+        loop.exec_()
+
+    def outputWritten(self, text):
+        cursor = self.textBrowser.textCursor()
+        cursor.movePosition(QtGui.QTextCursor.End)
+        cursor.insertText(text)
+        self.textBrowser.setTextCursor(cursor)
+        self.textBrowser.ensureCursorVisible()
+
 
 class FileNode(QGraphicsPixmapItem):
     def __init__(self, node_name: str, node_type: str, parent=None):
@@ -157,6 +174,9 @@ class MainTab(QWidget):
         self.view.customContextMenuRequested.connect(self.create_right_menu)  # 连接到菜单显示函数
         self.view.ui_ls()
 
+        # 临时创建，为了让主界面可以调用
+        self.action_cmd = QAction(QIcon('./UI/image/cmd.png'), u'控制台', self)
+
     # 创建右键菜单函数
     def create_right_menu(self):
         # 菜单对象
@@ -166,9 +186,12 @@ class MainTab(QWidget):
             action_touch = QAction(QIcon('./UI/image/touch.png'), u'新建文件', self)  # 创建菜单选项对象
             action_mkdir = QAction(QIcon('./UI/image/mkdir.png'), u'新建文件夹', self)
             action_back = QAction(QIcon('./UI/image/back.png'), u'返回上一级', self)
+
             groupBox_menu.addAction(action_back)
             groupBox_menu.addAction(action_touch)  # 把动作对象添加到菜单上
             groupBox_menu.addAction(action_mkdir)
+            groupBox_menu.addAction(self.action_cmd)
+
             action_back.triggered.connect(self.ui_back)
             action_touch.triggered.connect(self.ui_touch)
             action_mkdir.triggered.connect(self.ui_mkdir)
@@ -181,8 +204,6 @@ class MainTab(QWidget):
             show_run = True
             for i in selected_items:
                 if i.node_type != 'f':
-                # if i.node_type != 'f' or (i.node_type == 'f' and (len(i.node_name) < 4 \
-                #                     or (len(i.node_name) >= 4 and i.node_name[-4] != ".exe"))):
                     show_run = False
                     break
 
@@ -220,8 +241,6 @@ class MainTab(QWidget):
         else:
             for i in selected_items:
                 self.process_module.create_process(i.node_name, 1)
-
-
 
 
     def ui_touch(self):
@@ -264,15 +283,3 @@ class MyMainWindow(QMainWindow):
 #     window = MyMainWindow()   # 主界面
 #     window.show()
 #     sys.exit(app.exec_())
-
-# 新ui主函数
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    #window = MyMainWindow()   # 主界面
-    window = QMainWindow()
-    #ui = Ui_MainWindow()
-    ui.tab = MainTab()   # 所有原件需要在setup前初始化
-    ui.tab_2 = Process_Module_UI.ProcessTab()
-    ui.setupUi(window)
-    window.show()
-    sys.exit(app.exec_())
