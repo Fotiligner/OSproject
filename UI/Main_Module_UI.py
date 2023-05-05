@@ -8,7 +8,7 @@ from PyQt5.QtGui import QPainter, QIcon, QCursor, QPixmap
 from File_Module import File_Module
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QGraphicsView, \
     QGraphicsScene, QGraphicsItem, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
-    QPushButton
+    QPushButton, QMessageBox
 
 #from UI.main_test import Ui_MainWindow
 
@@ -145,7 +145,9 @@ class MainTab(QWidget):
     def __init__(self, file_module, process_module):
         super().__init__()
         self.scene = GridScene()
-        self.view = MyView(self.scene, file_module)  # view搭配scene
+        self.file_module = file_module
+        self.process_module = process_module
+        self.view = MyView(self.scene, self.file_module)  # view搭配scene
         layout = QVBoxLayout(self)
         layout.addWidget(self.view)
         self.setLayout(layout)
@@ -174,6 +176,25 @@ class MainTab(QWidget):
             action_delete = QAction(QIcon('./UI/image/delete.png'),u'删除', self)
             groupBox_menu.addAction(action_delete)
             action_delete.triggered.connect(lambda: self.ui_delete(selected_items))
+
+            # 若是可执行文件(exe结尾)则显示运行选项：
+            show_run = True
+            for i in selected_items:
+                if i.node_type != 'f':
+                # if i.node_type != 'f' or (i.node_type == 'f' and (len(i.node_name) < 4 \
+                #                     or (len(i.node_name) >= 4 and i.node_name[-4] != ".exe"))):
+                    show_run = False
+                    break
+
+            if show_run:
+                action_run = QAction(QIcon('./UI/image/run.png'), u'运行', self)
+                groupBox_menu.addAction(action_run)
+                action_run.triggered.connect(lambda: self.ui_run(selected_items))
+            # else:   # 显示报错，有不可执行的文件
+            #     # 后两项分别为按钮(以|隔开，共有7种按钮类型，见示例后)、默认按钮(省略则默认为第一个按钮)
+            #     reply = QMessageBox.information(self, "Error", "Non-executable files included", QMessageBox.OK,
+            #                                     QMessageBox.OK)
+
         groupBox_menu.exec_(QCursor.pos())  # 声明当鼠标在groupBox控件上右击时，在鼠标位置显示右键菜单   ,exec_,popup两个都可以，
 
     def ui_delete(self, selected_items):
@@ -183,6 +204,25 @@ class MainTab(QWidget):
             elif i.node_type == 'f':
                 self.view.file_module.rm(i.node_name)
         self.view.ui_ls()
+
+    def ui_run(self, selected_items):
+        is_executable = True
+        for i in selected_items:
+            print(i.node_name)
+            if len(i.node_name) < 4 or (len(i.node_name) >= 4 and i.node_name[-4:] != ".exe"):
+                is_executable = False
+                break
+
+        print(is_executable)
+
+        if not is_executable:
+            reply = QMessageBox.information(self, "Error", "Non-executable files included",  QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+        else:
+            for i in selected_items:
+                self.process_module.create_process(i.node_name, 1)
+
+
+
 
     def ui_touch(self):
         name, ok = QInputDialog.getText(self, '新建文件', '输入文件名')
