@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBo
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
 
-
+# 用于添加分割线的函数
 def addLine(layout,type):
     line = QFrame()
     if(type=="V"):
@@ -26,18 +26,12 @@ def addLine(layout,type):
     layout.addWidget(line)
 
 
-def addHorizontalLine(layout):
-    line = QFrame()
-    line.setFrameShape(QFrame.HLine)
-    line.setFrameShadow(QFrame.Sunken)
-    layout.addWidget(line)
-
-class Label1(QLabel):
+class currentStatusLabel(QLabel):
     def __init__(self, text):
         super().__init__()
         self.setText(text)
 
-class Label2(QLabel):
+class readyQueueLabel(QLabel):
     def __init__(self, text):
         super().__init__()
         self.setText(text)
@@ -66,19 +60,24 @@ class ProcessTab(QWidget):
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout()
+        #第一行
         row1_layout = QHBoxLayout()
         addLine(row1_layout,"V")
-        label1 = Label1("当前状态")
+        label1 = currentStatusLabel("当前状态")
         row1_layout.addWidget(label1)
         addLine(row1_layout,"V")
-        label2 = Label2("ready队列")
+        label2 = readyQueueLabel("ready队列")
         row1_layout.addWidget(label2)
         addLine(row1_layout,"V")
         label3 = Label3("waiting队列")
         row1_layout.addWidget(label3)
+
+        #第二行
         row2_layout = QHBoxLayout()
         label4 = Label4("甘特图")
         row2_layout.addWidget(label4)
+
+        #第三行
         row3_layout = QHBoxLayout()
         label5 = Label5("创建进程")
         row3_layout.addWidget(label5)
