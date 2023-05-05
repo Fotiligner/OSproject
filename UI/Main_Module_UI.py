@@ -1,5 +1,6 @@
 import sys, os
 from PyQt5.Qt import Qt
+from PyQt5 import QtCore, QtGui
 from PyQt5.QtGui import QPainter, QIcon, QCursor, QPixmap
 
 # 测试designer创建界面
@@ -20,6 +21,22 @@ box_size = 100
 
 
 # UI部件应该只能包含节点的文件名（目录名），为调用文件模块函数提供参数即可。UI只负责绘画。
+
+class EmittingStr(QtCore.QObject):
+    textWritten = QtCore.pyqtSignal(str)  # 定义一个发送str的信号
+    def write(self, text, ui):
+        self.textWritten.emit(str(text))
+        loop = QEventLoop()
+        QTimer.singleShot(100, loop.quit)
+        loop.exec_()
+
+    def outputWritten(self, text):
+        cursor = self.textBrowser.textCursor()
+        cursor.movePosition(QtGui.QTextCursor.End)
+        cursor.insertText(text)
+        self.textBrowser.setTextCursor(cursor)
+        self.textBrowser.ensureCursorVisible()
+
 
 class FileNode(QGraphicsPixmapItem):
     def __init__(self, node_name: str, node_type: str, parent=None):

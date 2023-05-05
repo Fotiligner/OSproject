@@ -34,8 +34,8 @@
      <rect>
       <x>20</x>
       <y>40</y>
-      <width>1141</width>
-      <height>561</height>
+      <width>1161</width>
+      <height>571</height>
      </rect>
     </property>
     <property name="currentIndex">
@@ -52,17 +52,14 @@
      </attribute>
     </widget>
    </widget>
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QTextBrowser" name="textBrowser">
     <property name="geometry">
      <rect>
-      <x>740</x>
+      <x>20</x>
       <y>640</y>
-      <width>151</width>
-      <height>81</height>
+      <width>1161</width>
+      <height>211</height>
      </rect>
-    </property>
-    <property name="text">
-     <string>运行</string>
     </property>
    </widget>
   </widget>
