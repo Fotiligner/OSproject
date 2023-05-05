@@ -5,6 +5,7 @@ from PyQt5.QtGui import QPainter, QIcon, QCursor, QPixmap
 from PyQt5.QtCore import QEventLoop, QTimer
 import UI.Process_Module_UI as Process_Module_UI
 from UI.Main_Module_UI import MainTab, EmittingStr
+import UI.IO_ui as IO_UI
 
 from Controller import Controller
 
@@ -27,6 +28,11 @@ class Main_Board(QMainWindow, Ui_MainWindow):
         super(Main_Board, self).__init__()
         self.tab = MainTab(os_controller.file_module, os_controller.process_module)   # 所有原件需要在setup前初始化
         self.tab_2 = Process_Module_UI.ProcessTab(os_controller.process_module)
+
+        # IO界面初始化
+        self.tab_3 = IO_UI.Ui_Form()
+        self.tab_3.setupUi(self.tab_3)
+
         self.setupUi(self)
         self.tabWidget.setGeometry(QtCore.QRect(20, 40, 1161, 800))
         self.textBrowser.setVisible(False)
