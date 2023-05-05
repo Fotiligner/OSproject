@@ -30,7 +30,7 @@ class Main_Board(QMainWindow, Ui_MainWindow):
         self.tab_2 = Process_Module_UI.ProcessTab(os_controller.process_module)
 
         # IO界面初始化
-        self.tab_3 = IO_UI.Ui_Form()
+        self.tab_3 = IO_UI.Ui_QWidget()
         self.tab_3.setupUi(self.tab_3)
 
         self.setupUi(self)
