@@ -20,14 +20,6 @@ class Virtual_Page:    # 一个虚页
         self.is_changed = -1    #修改位
         self.outaddress = None  #块号
 
-    def getline(self,num):
-        cont=self.content.split(';')
-        return cont[num]
-
-    def getonechar(self,num):
-        if len(self.content)>num:
-            return self.content[num]
-        return False
 
 
 class PageTable:  # 页表
@@ -49,10 +41,11 @@ class PageTable:  # 页表
 
 class Frame:    # 一个内存块
     def __init__(self, page_size=50, content=None, is_allocated=-1, pid=-1):
-        self.is_allocated = is_allocated    # 该块是否分配
+        self.is_allocated = is_allocated    # 该块是否分配,1表示普通文件，2表示进程文件
         self.pid = pid                      # 获得该块的进程pid
         self.content = content              # 块的内容
         self.page_size = page_size          # 一块的容量
+
 
     def clr(self):
         self.pid=-1
@@ -68,6 +61,12 @@ class Frame:    # 一个内存块
             return self.content[num]
         return False
 
+    def write(self,num, ch):
+        if len(self.content)>num:
+            self.content[num]=ch
+        else:
+            print("WRITE WRONG !!!!") # 返回错误码
+
 
 class MemoryManager:
     def __init__(self,file_module,  page_size=50, command_size=10, physical_page=50, schedule='FIFO'):
@@ -77,6 +76,7 @@ class MemoryManager:
         self.cs = command_size                                          # 一条指令的长度
         self.pn = physical_page                                         # 物理内存块数
         self.page_tables = {}                                           # 所有进程的页表
+        self.ftables = {}                                               # 所有文件的页表
         self.schedule = schedule                                        # 调页策略
         self.allocated = 0                                              # 物理内存已经被分配的块数
         self.page_fault = 0                                             # 缺页发生次数
@@ -84,9 +84,10 @@ class MemoryManager:
         self.physical_rate = [0]                                        # 内存使用率记录
         self.pidlist=[]                                                 # 未被满足的进程队列
         self.sizelist=[]                                                # 未被满足的需求块数队列
+        self.filelist = []                                              # 未被满足的文件队列
         self.file_module = file_module                                  # 文件模块接口
 
-    def alloc(self, pid, size, filename):
+    def alloc(self, pid, size, filename):  # 给进程分配内存
         s = size
         if s+self.allocated > self.pn:
             self.pidlist.append(pid)
@@ -118,17 +119,16 @@ class MemoryManager:
                     ptable.table[size-s].valid=1
                     ptable.table[size - s].entry = 1
                     self.Fage(size - s, ptable)
-                    self.physical_memory[i].content=self.file_module.disk.read_block(ptable.table[size-s].outaddress)
+                    self.physical_memory[i].content=self.file_module.disk.read_block(self.file_module.disk.data_base + ptable.table[size-s].outaddress)
                     # print(self.physical_memory[i].content)
                     s = s-1
                     if size - s >= psize:
                         break
-
                 if s == 0:
                     break
             return psize
 
-    def free(self, pid):
+    def free(self, pid):    # 释放进程
         status = 0
         ptable=self.page_tables[pid]
         for i in range(len(ptable.table)):
@@ -136,8 +136,7 @@ class MemoryManager:
                 status = 1
                 b = ptable.table[i].frame
                 if ptable.table[i].is_changed == 1:  # 有修改，写回外存,给块号和内容
-                    self.file_module.disk.write_block(ptable.table[i].outaddress,
-                            self.physical_memory[ptable.table[i].frame].content)
+                    self.file_module.disk.write_block(ptable.table[i].outaddress, self.physical_memory[b].content)
                 self.physical_memory[b].clr()
                 self.allocated=self.allocated-1
 
@@ -164,14 +163,14 @@ class MemoryManager:
                 block=self.FIFO(ptable)
                 self.Fage(page, ptable)
             self.physical_memory[block].is_allocated = 2
-            self.physical_memory[block].content = self.file_module.disk.read_block(ptable.table[page].outaddress) # 接口获取页内信息
+            self.physical_memory[block].content = self.file_module.disk.read_block(self.file_module.disk.data_base + ptable.table[page].outaddress) # 接口获取页内信息
             ptable.table[page].frame=block
             ptable.table[page].valid = 1
             ptable.table[page].is_changed = -1
+            print("缺页中断")
         elif block>=0:
             if self.schedule == 'LRU':
                 self.Lage(block,ptable)
-        print("缺页中断")
         return self.physical_memory[block].getonechar(page_offset)
 
     def page_PC(self, pid, address):
@@ -193,7 +192,7 @@ class MemoryManager:
                 block=self.FIFO(ptable)
                 self.Fage(page, ptable)
             self.physical_memory[block].is_allocated = 2
-            self.physical_memory[block].content = self.file_module.disk.read_block(ptable.table[page][5])  # 接口获取页内信息
+            self.physical_memory[block].content = self.file_module.disk.read_block(self.file_module.disk.data_base + ptable.table[page].outaddress)  # 接口获取页内信息
             ptable.table[page].frame = block
             ptable.table[page].valid = 1
             ptable.table[page].is_changed = -1
@@ -201,6 +200,119 @@ class MemoryManager:
             if self.schedule == 'LRU':
                 self.Lage(block,ptable)
         return self.physical_memory[block].getline(page_offset)
+
+
+    def falloc(self, filename):  # 给普通文件分配内存
+        s = 2
+        if s+self.allocated > self.pn:
+            self.filelist.append(filename)
+            return -1
+        else:
+            self.allocated += s
+            self.page_fault += s
+            file_fcb = self.file_module.get_fcb(filename)  # 文件接口
+            if file_fcb:
+                disk_loc = file_fcb.disk_loc
+                #print("disk_loc", disk_loc)
+            else:
+                print("UNFOUNDE FILE !!!!") # 返回错误码
+                return
+            psize = len(disk_loc)
+            if filename in self.ftables.keys():  # 已经有页表
+                ftable = self.ftables[filename]
+            else:  # 创建页表
+                ftable = PageTable(psize)
+                self.ftables[filename] = ftable
+            for i in range(psize):
+                ftable.table[i].outaddress = disk_loc[i]
+            for i in range(self.pn):
+                a=0
+                if self.physical_memory[i].is_allocated == -1:  # 该页未分配
+                    self.physical_memory[i].is_allocated = 1
+                    ftable.table[2-s].frame = i
+                    ftable.table[s-a].valid=1
+                    ftable.table[s - a].entry = 1
+                    self.Fage(s - a, ftable)
+                    self.physical_memory[i].content=self.file_module.disk.read_block(self.file_module.disk.data_base + ftable.table[s-a].outaddress)
+                    # print(self.physical_memory[i].content)
+                    a = a + 1
+                    if a == s:
+                        break
+            return 1
+
+    def ffree(self, filename):    # 释放进程
+        status = 0
+        ftable=self.ftables[filename]
+        for i in range(len(ftable.table)):
+            if ftable.table[i].valid == 1:
+                status = 1
+                b = ftable.table[i].frame
+                if ftable.table[i].is_changed == 1:  # 有修改，写回外存,给块号和内容
+                    self.file_module.disk.write_block(ftable.table[i].outaddress, self.physical_memory[b].content)
+                self.physical_memory[b].clr()
+                self.allocated=self.allocated-1
+        ftable.table.clear()
+        self.ftables.pop(filename)
+        if status == 0:
+            return False
+        return True
+
+    def faccess(self, filename, address):
+        self.page_access += 1
+        page=10*int(address[0])+int(address[1])
+        page_offset = 100*int(address[2])+10*int(address[3])+int(address[4])  # 页内偏移
+        ftable = self.ftables[filename]
+        block = ftable.transform(page)
+        if block == -2:
+            print("ERROR ADDRESS !!!!")
+            return -2
+        elif block ==-1:    #缺页中断
+            if self.schedule == 'LRU':
+                block=self.LRU(ftable)
+                self.Lage(page, ftable)
+            elif self.schedule == 'FIFO':
+                block=self.FIFO(ftable)
+                self.Fage(page, ftable)
+            self.physical_memory[block].is_allocated = 1
+            self.physical_memory[block].content = self.file_module.disk.read_block(self.file_module.disk.data_base + ftable.table[page].outaddress) # 接口获取页内信息
+            ftable.table[page].frame=block
+            ftable.table[page].valid = 1
+            ftable.table[page].is_changed = -1
+            print("缺页中断")
+        elif block>=0:
+            if self.schedule == 'LRU':
+                self.Lage(block,ftable)
+        return self.physical_memory[block].getonechar(page_offset)
+
+    def fwrite(self, filename, address, ch):
+        self.page_access += 1
+        page=10*int(address[0])+int(address[1])
+        page_offset = 100*int(address[2])+10*int(address[3])+int(address[4])  # 页内偏移
+        ftable = self.ftables[filename]
+        block = ftable.transform(page)
+        if block == -2:
+            print("ERROR ADDRESS !!!!")
+            return -2
+        elif block ==-1:    #缺页中断
+            if self.schedule == 'LRU':
+                block=self.LRU(ftable)
+                self.Lage(page, ftable)
+            elif self.schedule == 'FIFO':
+                block=self.FIFO(ftable)
+                self.Fage(page, ftable)
+            self.physical_memory[block].is_allocated = 1
+            self.physical_memory[block].content = self.file_module.disk.read_block(self.file_module.disk.data_base + ftable.table[page].outaddress) # 接口获取页内信息
+
+            print("缺页中断")
+        elif block>=0:
+            if self.schedule == 'LRU':
+                self.Lage(block,ftable)
+        ftable.table[page].frame = block
+        ftable.table[page].valid = 1
+        ftable.table[page].is_changed = 1
+        self.physical_memory[block].write(page_offset, ch)
+
+
 
     def Fage(self,idx,ptable):                      # 用于FIFO记录顺序
         for i in range(len(ptable.table)):
