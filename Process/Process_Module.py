@@ -2,8 +2,8 @@ import threading
 from threading import Event, Thread, current_thread
 import time
 import random
-import Scheduler
-import Process_Utils
+import Process.Scheduler
+import Process.Process_Utils
 import copy
 
 import matplotlib.pyplot as plt
@@ -93,10 +93,10 @@ clocking.start()  # 创建一个计数器线程
 
 # event类似于信号量，赋值True和False
 
-class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils.Process_Utils):  # 多继承
+class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Process.Process_Utils.Process_Utils):  # 多继承
     def __init__(self, memory_module):
         #初始化父类ProcessScheduler
-        Scheduler.ProcessScheduler.__init__(self)
+        Process.Scheduler.ProcessScheduler.__init__(self)
         threading.Thread.__init__(self)
 
         self.pcb_pool = []   # 整体pcb池，存储所有pcb
@@ -107,7 +107,7 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
         #self.schedule_type = args.schedule_type   # "multi_feedback_queue"  "single_queue"
         #self.schedule_algorithm = args.schedule_algorithm  # 仅在single_queue下生效
 
-        self.io_module = IO_Module('../device.json')
+        self.io_module = IO_Module('./device.json')  ##之前是../device.json也就是上一级目录, 但是他明明在同级目录下的   Nauhc
         self.memory_module = memory_module
 
         self.page_per_process = 3
