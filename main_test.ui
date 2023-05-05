@@ -51,6 +51,11 @@
       <string>进程信息展示</string>
      </attribute>
     </widget>
+    <widget class="QWidget" name="tab_3">
+     <attribute name="title">
+      <string>设备IO信息展示</string>
+     </attribute>
+    </widget>
    </widget>
    <widget class="QTextBrowser" name="textBrowser">
     <property name="geometry">

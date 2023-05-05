@@ -48,6 +48,8 @@ class PCB:
         # 新增甘特图辅助列表，记录进程所有running状态的开始和结束情况
         self.gantt_list = []    # 数字列表，结果为一个开始时间一个结束时间,后期考虑添加
 
+
+
     def update(self, pid, start_time, parent_pid=None,
                  child_pid=None,
                  already_time=None,
@@ -279,7 +281,10 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
         elif command[0] == "read" or command[0] == "write":
             pass
         elif command[0] == "fork":
-            pass
+            type, self.current_pid = self.getCurrentpid()  # 从success里调到外，可能有bug
+
+            alloc_output = self.memory_module.alloc(self.current_pid, self.page_per_process, file_name)
+
         elif command[0] == "exit":
             if self.running_pid != -1:
                 self.set_end(self.running_pid, current_time)
@@ -352,6 +357,21 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
         # # XY轴标签
         # plt.xlabel("运行时间/s", fontsize=30)
         plt.savefig("test.png")
+
+    def create_process_test(self, priority=None, alloc_output=None):
+        type, self.current_pid = self.getCurrentpid()  # 从success里调到外，可能有bug
+        if (type == "new"):  # 如果是个新PCB,也就是老PCB都没有终止
+            self.pcb_pool.append(PCB(self.current_pid, parent_pid=-1, \
+                                     child_pid=-1, priority=priority, start_time=current_time, \
+                                     page_allocated=alloc_output))  # pc_end=2 , content = "cpu 2;output printer asdfasdf 3;cpu 3"))   # 暂时
+            self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
+        elif (type == "old"):
+            self.pcb_pool[self.loc_pid_inPool(self.current_pid)].update(self.current_pid, parent_pid=-1, \
+                                                                        child_pid=-1, priority=priority,
+                                                                        start_time=current_time, \
+                                                                        page_allocated=alloc_output)  # pc_end=1 , content = "cpu 2;cpu 3")
+            self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
+
 
 if __name__ == '__main__':
     e = Event()  # 默认False
