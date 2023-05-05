@@ -11,7 +11,6 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBo
     QGraphicsScene, QGraphicsItem, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
     QPushButton
 
-
 if __name__ == '__main__':
     # 启动操作系统主控制程序，包括文件、内存、进程模块代码在内
     os_controller = Controller()

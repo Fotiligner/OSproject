@@ -19,10 +19,6 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBo
     QGraphicsScene, QGraphicsItem, QGraphicsProxyWidget, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
     QPushButton
 
-from UI.Main_Module_UI import MainTab
-import UI.Process_Module_UI as Process_Module_UI
-
-
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -60,13 +56,3 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("MainWindow", "进程信息展示"))
         self.pushButton.setText(_translate("MainWindow", "运行"))
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    #window = MyMainWindow()   # 主界面
-    window = QMainWindow()
-    ui = Ui_MainWindow()
-    ui.tab = MainTab()   # 所有原件需要在setup前初始化
-    ui.tab_2 = Process_Module_UI.ProcessTab()
-    ui.setupUi(window)
-    window.show()
-    sys.exit(app.exec_())
