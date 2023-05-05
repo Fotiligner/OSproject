@@ -10,7 +10,7 @@ file_count = 20
 #绘制格子的类
 class Grid(QGraphicsScene):
     def __init__(self):
-        super().__init__()
+        super().__init__()             #调用父类（超类）的一种方法
         self.setSceneRect(0, 0, 1200, 900)
         pen = QPen(Qt.black, 1, Qt.SolidLine)
         count = 0

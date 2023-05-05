@@ -331,13 +331,13 @@ class Process_Module(threading.Thread, Scheduler.ProcessScheduler, Process_Utils
         print("在" + str(current_time) + "时刻" + "进程" + str(pid) + "被杀死")
 
     def gantt_graph(self):
-        plt.figure(figsize=(20, 14), dpi=100)
-        plt.title("Facos进程运行甘特图", fontsize=30)
+        plt.figure(figsize=(20, 14), dpi=100)     ## 定义一个图像窗口
+        plt.title("Facos进程运行甘特图", fontsize=30)   ## 标题  后面的fontsize字体大小
 
         color = ['b', 'g', 'r', 'y', 'c', 'm', 'k']
 
         for index, process in enumerate(self.pcb_pool):
-            for span in process.gantt_list:
+            for span in process.gantt_list:       ##   self.gantt_list = []
                 plt.barh(index, width=span[1] - span[0] + 1, left=span[0], color=color[index])
 
         # labels = [''] * len(add[0])
