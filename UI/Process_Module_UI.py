@@ -23,22 +23,56 @@ def addLine(layout,type):
 
 
 class currentStatusLabel(QLabel):
-    def __init__(self, text):
+    def __init__(self, text, process_module):
         super().__init__()
         self.setText("当前时刻:0")
+        self.process_module = process_module
+        ## 设置定时器
         self.timer = QTimer()
         self.timer.timeout.connect(self.updateText)
         self.timer.start(100)
 
+        ##
+        layout = QVBoxLayout()
+        ### 上面的文字部分
+
+        self.text_label = QLabel("当前执行进程")
+        self.text_label.setAlignment(Qt.AlignCenter)
+        self.text_label1 = QLabel("当前时刻")
+        self.text_label1.setAlignment(Qt.AlignCenter)
+        self.text_label2 = QLabel("当前使用的调度算法")
+        self.text_label2.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.text_label)
+        layout.addWidget(self.text_label2)
+        layout.addWidget(self.text_label2)
+
+        ### 按钮部分
+        self.button1 = QPushButton("FCFS")
+        self.button2 = QPushButton("抢占优先级")
+        self.button3 = QPushButton("时间片轮转")
+        layout.addWidget(self.button1)
+        layout.addWidget(self.button2)
+        layout.addWidget(self.button3)
+        self.button1.clicked.connect(lambda: self.setTextFromButton(self.button1))
+        self.button2.clicked.connect(lambda: self.setTextFromButton(self.button2))
+        self.button3.clicked.connect(lambda: self.setTextFromButton(self.button3))
+        self.setLayout(layout)
+
+    #根据文字改变
+    def setTextFromButton(self, button):
+        self.text_label.setText(button.text())
+
     def updateText(self):
-        # 获取另一个类中的变量的值
-        value = Process.Process_Module.current_time
+        # 获取值
+        time = Process.Process_Module.current_time
+        current_running = self.process_module.current_pid
 
         # 更新当前StatusLabel的文本属性
-        self.setText(f"当前时刻:{value}")
+        self.setText(f"当前时刻:{time}")
+        self.text_label.setText(f"当前执行进程: {current_running}")
 
 
-
+### ready队列的Label
 class readyQueueLabel(QLabel):
     def __init__(self, text):
         super().__init__()
@@ -75,7 +109,7 @@ class readyQueueLabel(QLabel):
 
 
 
-
+### 等待队列的Label
 class waitingQueueLabel(QLabel):
     def __init__(self, text):
         super().__init__()
@@ -106,12 +140,12 @@ class waitingQueueLabel(QLabel):
         # 将QScrollArea设置为当前label的布局
         self.setLayout(QVBoxLayout())
         self.layout().addWidget(scroll_area)
-
+### 预留给甘特图的地方
 class Label4(QLabel):
     def __init__(self, text):
         super().__init__()
         self.setText(text)
-
+### 创建新进程的Laebl
 class Label5(QLabel):
     def __init__(self, text):
         super().__init__()
@@ -144,7 +178,6 @@ class Label5(QLabel):
         print(self.textbox1.text())
         print(self.textbox2.text())
         print(self.textbox3.text())
-
 class SchedulerLabel(QLabel):
     def __init__(self, text):
         super().__init__()
@@ -165,15 +198,17 @@ class SchedulerLabel(QLabel):
 
     def setTextFromButton(self, button):
         self.text_label.setText(button.text())
-
+### 属于进程系统的TAB
 class ProcessTab(QWidget):
-    def __init__(self):
+    def __init__(self, process_module):
         super().__init__()
+        self.process_module = process_module
+
         layout = QVBoxLayout()
         #第一行
         row1_layout = QHBoxLayout()
         addLine(row1_layout,"V")
-        label1 = currentStatusLabel("当前状态")
+        label1 = currentStatusLabel("当前状态",process_module)
         row1_layout.addWidget(label1)
         addLine(row1_layout,"V")
         label2 = readyQueueLabel("ready队列")

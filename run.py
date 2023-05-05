@@ -26,7 +26,7 @@ class Main_Board(QMainWindow, Ui_MainWindow):
     def __init__(self, os_controller):
         super(Main_Board, self).__init__()
         self.tab = MainTab(os_controller.file_module, os_controller.process_module)   # 所有原件需要在setup前初始化
-        self.tab_2 = Process_Module_UI.ProcessTab()
+        self.tab_2 = Process_Module_UI.ProcessTab(os_controller.process_module)
         self.setupUi(self)
         self.tabWidget.setGeometry(QtCore.QRect(20, 40, 1161, 800))
         self.textBrowser.setVisible(False)
