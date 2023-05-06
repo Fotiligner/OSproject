@@ -39,6 +39,11 @@ class Main_Board(QMainWindow, Ui_MainWindow):
         self.tab.action_cmd.triggered.connect(self.ui_cmd)
         self.tab_visible = False
 
+        # 开启IO实时显示功能界面
+        self.tab_3.setDaemon(True)
+        self.tab_3.executing = True
+        self.tab_3.start()
+
         # 下面将输出重定向到textBrowser中
         sys.stdout = EmittingStr(textWritten=self.outputWritten)
         sys.stderr = EmittingStr(textWritten=self.outputWritten)

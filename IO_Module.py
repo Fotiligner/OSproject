@@ -25,6 +25,7 @@ class IO_Module:
             for i, busy_state in enumerate(self.device_table[request.target_device].is_busy):
                 if busy_state == 0:    # 空闲状态
                     request.target_device_count = i
+                    self.device_table[request.target_device].is_busy[i] = 1
                     break
 
             # 不管是否分配到设备，全部放入设备请求队列中
@@ -79,6 +80,7 @@ class IO_Module:
                             if request_non.target_device_count == -1:
                                 request_non.target_device_count = request.target_device_count
                                 device.is_busy[request.target_device_count] = 1  # 重新占用设备
+                                break
 
         return output
 

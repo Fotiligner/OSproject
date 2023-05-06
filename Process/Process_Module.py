@@ -87,10 +87,10 @@ def clock():  #  模拟时钟
     global current_time
     while clock_running:
         e.clear()   # 置为False
-        time.sleep(0.25)
+        time.sleep(0.5)
         current_time +=1
         e.set()     # 置为True
-        time.sleep(0.25)
+        time.sleep(0.5)
 
 clocking = Thread(target=clock)
 clocking.setDaemon(True)
