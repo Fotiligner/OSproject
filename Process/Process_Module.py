@@ -114,7 +114,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
 
         self.io_module = IO_Module('./device.json')  ##之前是../device.json也就是上一级目录, 但是他明明在同级目录下的   Nauhc
         self.memory_module = memory_module
-
+        self.waiting_queue = []
         self.page_per_process = 3
         self.command_per_page = 5
 
