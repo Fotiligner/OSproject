@@ -3,23 +3,16 @@ from PyQt5.Qt import Qt
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QGraphicsView, \
     QGraphicsScene, QGraphicsItem, QGraphicsProxyWidget, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
-    QPushButton, QHBoxLayout, QScrollArea, QSizePolicy, QLineEdit
+    QPushButton, QHBoxLayout, QScrollArea, QSizePolicy, QLineEdit,QScrollBar
 
 import Process.Process_Module
 
 # 进程模块的TAB
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
-
+import UI.UI_utils
 # 用于添加分割线的函数
-def addLine(layout,type):
-    line = QFrame()
-    if(type=="V"):
-        line.setFrameShape(QFrame.VLine)
-    else:
-        line.setFrameShape(QFrame.HLine)
-    line.setFrameShadow(QFrame.Sunken)
-    layout.addWidget(line)
+
 
 
 class currentStatusLabel(QLabel):
@@ -74,74 +67,73 @@ class currentStatusLabel(QLabel):
 
         # 更新当前StatusLabel的文本属性
         self.text_label1.setText(f"当前时刻:{time}")
-        self.text_label.setText(f"当前执行进程: {current_running}")
+        if(self.process_module.running_pid != -1):
+            self.text_label.setText(f"当前执行进程: {self.process_module.running_pid}")
+        else:
+            self.text_label.setText(f"当前执行进程: {0} (init进程)")
         self.text_label2.setText(f"当前使用的调度算法:{self.process_module.schedule_type}")
 
 
 ### ready队列的Label
 class readyQueueLabel(QLabel):
-    def __init__(self,process_module):
+    def __init__(self, process_module):
         super().__init__()
-        self.length = len(process_module.ready_queue)
+        self.process_module = process_module
+        self.layout = QVBoxLayout()
 
-        layout = QVBoxLayout()
-        label = QLabel("ready队列")
-        label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(label)
-
-        # 创建多个按钮并添加到布局中
-        for i in range(self.length):
-            btn = QPushButton("Button {}".format(i + 1))
-            layout.addWidget(btn)
-
-        # 将布局添加到QScrollArea的QWidget中
-        widget = QWidget()
-        widget.setLayout(layout)
-
-        # 创建一个滚动区域并将QWidget添加到其中
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setWidget(widget)
-
-        # 设置滚动区域的大小策略
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-
-        # 将QScrollArea设置为当前label的布局
-        self.setLayout(QVBoxLayout())
-        self.layout().addWidget(scroll_area)
-### 等待队列的Label
-class waitingQueueLabel(QLabel):
-    def __init__(self, text):
-        super().__init__()
-        layout = QVBoxLayout()
         label = QLabel("waiting队列")
         label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(label)
+        self.layout.addWidget(label)
 
-        # 创建多个按钮并添加到布局中
-        for i in range(6):
-            btn = QPushButton("Button {}".format(i + 1))
-            layout.addWidget(btn)
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_slots)
+        self.timer.start(1000)
+        self.setLayout(self.layout)
 
-        # 将布局添加到QScrollArea的QWidget中
-        widget = QWidget()
-        widget.setLayout(layout)
+    def update_slots(self):
+        for i in range(self.layout.count() - 1, -1, -1):
+            widget = self.layout.itemAt(i).widget()
+            if isinstance(widget, QPushButton):
+                widget.setParent(None)
+        ready_queue = self.process_module.ready_queue
+        num_buttons = len(ready_queue)
+        for i in range(num_buttons):
+            btn = QPushButton("进程 {}".format(ready_queue[i]))
+            self.layout.addWidget(btn)
 
-        # 创建一个滚动区域并将QWidget添加到其中
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setWidget(widget)
 
-        # 设置滚动区域的大小策略
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
-        # 将QScrollArea设置为当前label的布局
-        self.setLayout(QVBoxLayout())
-        self.layout().addWidget(scroll_area)
+
+### 等待队列的Label
+class waitingQueueLabel(QLabel):
+    def __init__(self, process_module):
+        super().__init__()
+        self.process_module = process_module
+        self.layout = QVBoxLayout()
+
+        label = QLabel("waiting队列")
+        label.setAlignment(Qt.AlignCenter)
+        self.layout.addWidget(label)
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_slots)
+        self.timer.start(1000)
+        self.setLayout(self.layout)
+
+    def update_slots(self):
+        for i in range(self.layout.count() - 1, -1, -1):
+            widget = self.layout.itemAt(i).widget()
+            if isinstance(widget, QPushButton):
+                widget.setParent(None)
+
+        waiting_queue = self.process_module.waiting_queue
+        num_buttons = len(waiting_queue)
+
+
+        for i in range(num_buttons):
+            btn = QPushButton("进程 {}".format(waiting_queue[i]))
+            self.layout.addWidget(btn)
+
+
 ### 预留给甘特图的地方
 class Label4(QLabel):
     def __init__(self, text):
@@ -151,10 +143,7 @@ class Label4(QLabel):
 class createProcessLabel(QLabel):
     def __init__(self, process_module):
         super().__init__()
-        # 创建一个垂直布局
         layout = QVBoxLayout()
-
-        # 创建三个文本框并添加到布局中
         self.textbox1 = QLineEdit()
         self.textbox1.setPlaceholderText("uid")
         self.textbox2 = QLineEdit()
@@ -209,14 +198,14 @@ class ProcessTab(QWidget):
         layout = QVBoxLayout()
         #第一行
         row1_layout = QHBoxLayout()
-        addLine(row1_layout,"V")
+        UI.UI_utils.addLine(row1_layout,"V")
         label1 = currentStatusLabel(process_module)
         row1_layout.addWidget(label1)
-        addLine(row1_layout,"V")
+        UI.UI_utils.addLine(row1_layout,"V")
         label2 = readyQueueLabel(process_module)
         row1_layout.addWidget(label2)
-        addLine(row1_layout,"V")
-        label3 = waitingQueueLabel("waiting队列")
+        UI.UI_utils.addLine(row1_layout,"V")
+        label3 = waitingQueueLabel(process_module)
         row1_layout.addWidget(label3)
 
         #第二行
@@ -228,12 +217,12 @@ class ProcessTab(QWidget):
         row3_layout = QHBoxLayout()
         label5 = createProcessLabel(process_module)
         row3_layout.addWidget(label5)
-        addLine(row3_layout, "V")
+        UI.UI_utils.addLine(row3_layout, "V")
         label6 = SchedulerLabel("调度算法之类的")
         row3_layout.addWidget(label6)
         layout.addLayout(row1_layout)
-        addLine(layout, "H")
+        UI.UI_utils.addLine(layout, "H")
         layout.addLayout(row2_layout)
-        addLine(layout, "H")
+        UI.UI_utils.addLine(layout, "H")
         layout.addLayout(row3_layout)
         self.setLayout(layout)
