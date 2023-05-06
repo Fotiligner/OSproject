@@ -43,6 +43,7 @@ class Frame:    # 一个内存块
     def __init__(self, page_size=50, content=None, is_allocated=-1, pid=-1):
         self.is_allocated = is_allocated    # 该块是否分配,1表示普通文件，2表示进程文件
         self.pid = pid                      # 获得该块的进程pid
+        self.filename = None
         self.content = content              # 块的内容
         self.page_size = page_size          # 一块的容量
 
@@ -51,6 +52,7 @@ class Frame:    # 一个内存块
         self.pid=-1
         self.is_allocated=-1
         self.content=None
+        self.filename=None
 
     def getline(self,num):
         cont=self.content.split(';')
@@ -231,6 +233,7 @@ class MemoryManager:
                 a=0
                 if self.physical_memory[i].is_allocated == -1:  # 该页未分配
                     self.physical_memory[i].is_allocated = 1
+                    self.physical_memory[i].filename=filename
                     ftable.table[2-s].frame = i
                     ftable.table[s-a].valid=1
                     ftable.table[s - a].entry = 1
