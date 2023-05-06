@@ -270,6 +270,7 @@ class MyMainWindow(QMainWindow):
         self.tab2 = Process_Module_UI.ProcessTab()
         self.tabs.addTab(self.tab1, "首页")
         self.tabs.addTab(self.tab2, "进程模块")
+        self.tabs.addTab(self.tab4, "进程模块")
         self.setCentralWidget(self.tabs)
         self.tabs.setCurrentIndex(0)  # 首页
         self.setGeometry(100, 100, scene_width+100, scene_height+100)
