@@ -34,7 +34,6 @@ class Disk:
 
     def __init__(self, file_path):
         self.file_path = file_path
-        self.read_super_blk()
 
     def init_disk(self):
         """
@@ -196,6 +195,7 @@ class File_Module:
             self.disk.init_disk()
             self.disk.write_super_blk()
         self.read_dir_tree()
+        self.disk.read_super_blk()
 
     def read_dir_tree(self):
         """
@@ -352,11 +352,20 @@ class File_Module:
         :param algo:磁头寻道算法
         :return: 不同算法返回的队列
         """
-        ret_list=[init_loc]
+        index_list = ret_list=[]
+        if init_loc in disk_locs:
+            init_index=disk_locs.index(init_loc)
+            index_list.append([init_loc,init_index])
+        else:
+            index_list.append([init_loc,-1])
+        for i in range(len(disk_locs)):
+            index_list.append([disk_locs[i],i])
+
         if algo == "FCFS":
-            ret_list.extend(disk_locs)
+            ret_list=index_list
         elif algo == "SSTF":
-            pass
+            sort_list=index_list.sort(key=lambda x: x[0])
+
         elif algo == "SCAN":
             ret_list.extend(disk_locs)
             ret_list=ret_list.sort()
