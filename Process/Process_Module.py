@@ -298,9 +298,9 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                                              page_allocated=alloc_output,file_name= name_of_file)
                 fork_pcb = copy.deepcopy(self.pcb_pool[self.loc_pid_inPool(self.running_pid)])
                 # 复制来的pcb需要对进程id进行更改  pc数也要加1  父进程就是当前正在运行的pid
-                self.fork_pcb.pid = self.chd_pid
-                self.fork_pcb.pc +=1
-                self.fork_pcb.parent_pid = self.running_pid
+                fork_pcb.pid = self.chd_pid
+                fork_pcb.pc = self.add_pc(fork_pcb.pc)
+                fork_pcb.parent_pid = self.running_pid
                 #  添加到pcb池子中去  并且也要放到ready队列之中
                 self.pcb_pool.append(fork_pcb)
                 self.ready_queue.append(self.chd_pid)
