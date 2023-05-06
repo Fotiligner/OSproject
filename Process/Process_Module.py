@@ -292,6 +292,25 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 name_of_file =self.pcb_pool[self.loc_pid_inPool(self.running_pid)].file_name
             alloc_output = self.memory_module.alloc(self.chd_pid, self.page_per_process,name_of_file )
             if alloc_output >= 0:  # 内存分配成功
+                #先创建一个pcb 随便一个pcb  然后深层复制
+                fork_pcb = PCB(self.chd_pid, parent_pid=-1, \
+                                             child_pid=-1, priority=1, start_time=current_time, \
+                                             page_allocated=alloc_output,file_name= name_of_file)
+                fork_pcb = copy.deepcopy(self.pcb_pool[self.loc_pid_inPool(self.running_pid)])
+                # 复制来的pcb需要对进程id进行更改  pc数也要加1  父进程就是当前正在运行的pid
+                self.fork_pcb.pid = self.chd_pid
+                self.fork_pcb.pc +=1
+                self.fork_pcb.parent_pid = self.running_pid
+                #  添加到pcb池子中去  并且也要放到ready队列之中
+                self.pcb_pool.append(fork_pcb)
+                self.ready_queue.append(self.chd_pid)
+                #  将父进程 也就是running_pid 的子进程进行修改
+                self.pcb_pool[self.loc_pid_inPool(self.running_pid)].child_pid = self.chd_pid
+            else:# 内存分配不成功
+                if alloc_output == -2:
+                    print("error" + " the file does not exist")
+                elif alloc_output == -1:
+                    print("error" + " not enough room for pages of this process")
                 pass
 
         elif command[0] == "exit":
