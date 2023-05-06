@@ -212,13 +212,26 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 if len(device_output) > 0:
                     print(device_output)
 
+                disk_output = self.io_module.disk_io_run()
+                if len(disk_output) > 0:
+                    print(disk_output)
+
                 for return_dict in device_output:   # 当前时刻返回的device信息，用来指示已完成IO的进程信息以及传输的数据
                     print("在" + str(current_time) + "时刻" + "进程" + str(
-                        self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pid) + "完成IO")
+                        self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pid) + "完成设备IO")
                     self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc = self.add_pc(self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc)
                     self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].status = "ready"
                     self.ready_queue.append(return_dict['pid'])  # 完成io的程序从waiting到ready
                     self.waiting_queue.remove(return_dict['pid'])
+
+                for return_dict in disk_output:
+                    print("在" + str(current_time) + "时刻" + "进程" + str(
+                        self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pid) + "完成磁盘IO")
+                    self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc = self.add_pc(self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc)
+                    self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].status = "ready"
+                    self.ready_queue.append(return_dict['pid'])  # 完成io的程序从waiting到ready
+                    self.waiting_queue.remove(return_dict['pid'])
+
 
                     # if(self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].pc <= self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].pc_end):
                     #     self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].status = "ready"
@@ -265,6 +278,14 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc = self.add_pc(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)   # 指令行数增加，指向下一条指令
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].command_already_time = 0
             return
+        elif command[0] == "read" or command[0] == "write":
+            # 问内存当前文件是否在内存中 search file
+            # 没有就调用falloc
+            # 要清除 fwrite(file_name, address, digit)
+            self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1
+            self.io_module.add_request(source_pid=self.running_pid, target_device=None, IO_time=int(command[2]), content=None,\
+                                       priority_num=1, is_disk=True, file_path=command[1], rw_state=command[0][0])
+            self.io_interrupt("disk_io")
         elif command[0] == "output" or command[0] == "input":  # output + device_name + content + time
             self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1
             # 防止结尾的中断指令被识别为进程结束，中断的pc+1在回传的时候完成
@@ -276,6 +297,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
         elif command[0] == "access":
             self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1  # 进程进度加一（already_time）
             address_content = self.memory_module.access(self.running_pid, command[1])
+            # -1
 
             if address_content == -2: # 地址出错
                 print('\033[1;31m' + "访问的地址越界！" + '\033[0m')
@@ -283,8 +305,6 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 print("访问的地址内容为：" + address_content)
             self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc = self.add_pc(
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)  # 指令行数增加，指向下一条指令
-        elif command[0] == "read" or command[0] == "write":
-            pass
         elif command[0] == "fork":
 
             type, self.chd_pid = self.getCurrentpid()  # 从success里调到外，可能有bug
