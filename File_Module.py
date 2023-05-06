@@ -1,5 +1,8 @@
 import msvcrt
 import os
+import random
+import re
+
 import prettytable
 from enum import Enum
 
@@ -19,7 +22,7 @@ class Disk:
     file_path = None  # 磁盘文件路径
     track_tot_num = 100  # 总磁道数
     sector_per_track = 10  # 每个磁道的扇区数
-    blk_size = 20  # 块的大小，以字符为单位
+    blk_size = 60  # 块的大小，以字符为单位
     blk_tot_num = track_tot_num * sector_per_track  # 总块数
     size = blk_tot_num * blk_size  # 总大小，以字符为单位
     super_blk_num = 80  # 超级块的数目
@@ -31,6 +34,7 @@ class Disk:
 
     def __init__(self, file_path):
         self.file_path = file_path
+        self.read_super_blk()
 
     def init_disk(self):
         """
@@ -50,7 +54,7 @@ class Disk:
         :param buf: 需写入内容
         :return:
         """
-        buf=buf.replace('\n','\1')  # 因为\n在文件中其实是\r\n，占两个偏移量，却只算一个字符
+        buf = buf.replace('\n', '\1')  # 因为\n在文件中其实是\r\n，占两个偏移量，却只算一个字符
         with open(self.file_path, 'r+') as f:
             f.seek(loc * self.blk_size)
             if len(buf) < self.blk_size:
@@ -66,8 +70,8 @@ class Disk:
         """
         with open(self.file_path, 'r') as f:
             f.seek(loc * self.blk_size)
-            buf=f.read(self.blk_size)
-            return buf.replace('\1','\n')
+            buf = f.read(self.blk_size)
+            return buf.replace('\1', '\n')
 
     def display(self):
         """
@@ -131,26 +135,35 @@ class Disk:
         self.size = self.blk_tot_num * self.blk_size
         self.blk_free_num = self.blk_tot_num
 
-    def disk_alloc(self, num):
+    def disk_alloc(self, num, alloc_method="default"):
         """
         分配所需数目的磁盘块。
         :param num:所需数目。
         :return:分配的磁盘块的下标列表。
         """
         addr = []
-        bitmap = list(self.bitmap)
-        for i in range(self.data_blk_num):
-            if bitmap[i] == '0':
-                addr.append(i)
-                if len(addr) >= num:
-                    break
-        if len(addr) >= num:
-            for i in range(len(addr)):
-                bitmap[addr[i]] = '1'
-                self.bitmap = ''.join(bitmap)
-                self.write_super_blk()
-        else:
-            addr = []
+        if alloc_method=="default":
+            print("self.bitmap:%s"%self.bitmap[:5])
+            bitmap = list(self.bitmap)
+            print("bitmap:%s"%bitmap[:5])
+            for i in range(self.data_blk_num):
+                if bitmap[i] == '0':
+                    addr.append(i)
+                    print("i:%d"%i)
+                    if len(addr) >= num:
+                        break
+            if len(addr) >= num:
+                for i in range(len(addr)):
+                    bitmap[addr[i]] = '1'
+                    print("bitmap:%s"%bitmap[:5])
+                    self.bitmap = ''.join(bitmap)
+                    self.write_super_blk()
+            else:
+                addr = []
+        elif alloc_method == "random":
+            list_index=[i.start() for i in re.finditer('0',self.bitmap)]
+            addr=random.sample(list_index,num)
+        print("addr:"+str(addr))
         return addr
 
 
@@ -314,19 +327,40 @@ class File_Module:
         del dir_node
         self.write_dir_tree()
 
-    def read_file(self, fcb):
+    def read_file(self, fcb,algo="FCFS"):
         """
         读取文件内容。
         :param fcb:给定的fcb。
         :return: 返回文件内容，字符串类型。
         """
-        buf = ''
-        for i in fcb.disk_loc:
-            buf = buf + self.disk.read_block(self.disk.data_base + i)
-            if buf.find('\0') != -1:
-                buf = buf[: buf.find('\0') + 1]
-                break
+        buf = [""for i in range(fcb.blk_num)]
+        if algo == "FCFS":
+            for i in range(fcb.blk_num):
+                buf[i] =  self.disk.read_block(self.disk.data_base + fcb.disk_loc[i])
+                if buf[i].find('\0') != -1:
+                    buf[i] = buf[i][: buf[i].find('\0') + 1]
+                    break
+            buf=''.join(buf)
+        elif algo == "":
+            pass
         return buf[:-1]  # 去除末尾的结尾符
+
+    def head_seek(self,disk_locs,algo,init_loc):
+        """
+        磁头寻道算法
+        :param disk_loc:磁道序列
+        :param algo:磁头寻道算法
+        :return: 不同算法返回的队列
+        """
+        ret_list=[init_loc]
+        if algo == "FCFS":
+            ret_list.extend(disk_locs)
+        elif algo == "SSTF":
+            pass
+        elif algo == "SCAN":
+            ret_list.extend(disk_locs)
+            ret_list=ret_list.sort()
+        return ret_list
 
     def write_file(self, fcb, buf):
         """
@@ -340,12 +374,10 @@ class File_Module:
         new_blk_num = int((fcb.size + 1) / self.disk.blk_size) + 1
         if new_blk_num > fcb.blk_num:
             new_disk_loc = self.disk.disk_alloc(new_blk_num - fcb.blk_num)
-            print('more alloc'+str(new_disk_loc))
             fcb.disk_loc.extend(new_disk_loc)
             fcb.blk_num = new_blk_num
         for i in range(fcb.blk_num):
             self.disk.write_block(self.disk.data_base + fcb.disk_loc[i], buf)
-            print("buf:%s" % repr(buf))
             buf = buf[self.disk.blk_size:]
 
     def find_node(self, path):
@@ -383,7 +415,7 @@ class File_Module:
         self.make_dir(name)
         return Ret_State.Success
 
-    def touch(self, name, size=0, auth='wr-'):
+    def touch(self, name, size=0, auth='wr-', alloc_method='default'):
         """
         为shell提供的命令，创建文件。
         :param name: 文件名
@@ -394,7 +426,7 @@ class File_Module:
         for c in self.work_dir.childs:
             if isinstance(c, FCB) and c.name == name:
                 return Ret_State.Error_File_Exist
-        disk_loc = self.disk.disk_alloc(int(size / self.disk.blk_size) + 1)
+        disk_loc = self.disk.disk_alloc(int(size / self.disk.blk_size) + 1, alloc_method=alloc_method)
         fcb = None
         if len(disk_loc) != -1:
             fcb = self.make_fcb(name, disk_loc, size, auth)
@@ -430,13 +462,13 @@ class File_Module:
         展示当前目录下的文件。
         :return:返回文件名和文件类型的列表[[filename1,type1],[filename2,type2]..]
         """
-        ret_list=[]
+        ret_list = []
         for c in self.work_dir.childs:
             if isinstance(c, Dir):
-                node=[c.name,"d"]
+                node = [c.name, "d"]
                 print('\033[34m' + c.name + '\033[0m', end=' ')
             else:
-                node=[c.name,"f"]
+                node = [c.name, "f"]
                 print('\033[38m' + c.name + '\033[0m', end=' ')
             ret_list.append(node)
         print('')
@@ -513,7 +545,6 @@ class File_Module:
 if __name__ == '__main__':
     file_system = File_Module(disk_path)
     active = True
-    print(file_system.disk.read_block(201))
     while active:
         cmds = input(file_system.work_path + ':')
         cmd = cmds.split()
