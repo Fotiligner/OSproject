@@ -168,10 +168,11 @@ class MemoryManager:
             ptable.table[page].valid = 1
             ptable.table[page].is_changed = -1
             print("缺页中断")
+            return -1
         elif block>=0:
             if self.schedule == 'LRU':
                 self.Lage(block,ptable)
-        return self.physical_memory[block].getonechar(page_offset)
+            return self.physical_memory[block].getonechar(page_offset)
 
     def page_PC(self, pid, address):
         print("address")
@@ -196,10 +197,11 @@ class MemoryManager:
             ptable.table[page].frame = block
             ptable.table[page].valid = 1
             ptable.table[page].is_changed = -1
+            return -1
         elif block>=0:
             if self.schedule == 'LRU':
                 self.Lage(block,ptable)
-        return self.physical_memory[block].getline(page_offset)
+            return self.physical_memory[block].getline(page_offset)
 
 
     def falloc(self, filename):  # 给普通文件分配内存
@@ -279,10 +281,11 @@ class MemoryManager:
             ftable.table[page].valid = 1
             ftable.table[page].is_changed = -1
             print("缺页中断")
+            return -1
         elif block>=0:
             if self.schedule == 'LRU':
                 self.Lage(block,ftable)
-        return self.physical_memory[block].getonechar(page_offset)
+            return self.physical_memory[block].getonechar(page_offset)
 
     def fwrite(self, filename, address, ch):
         self.page_access += 1
@@ -302,15 +305,16 @@ class MemoryManager:
                 self.Fage(page, ftable)
             self.physical_memory[block].is_allocated = 1
             self.physical_memory[block].content = self.file_module.disk.read_block(self.file_module.disk.data_base + ftable.table[page].outaddress) # 接口获取页内信息
-
+            ftable.table[page].frame = block
+            ftable.table[page].valid = 1
+            ftable.table[page].is_changed = 1
             print("缺页中断")
+            return -1
         elif block>=0:
             if self.schedule == 'LRU':
                 self.Lage(block,ftable)
-        ftable.table[page].frame = block
-        ftable.table[page].valid = 1
-        ftable.table[page].is_changed = 1
-        self.physical_memory[block].write(page_offset, ch)
+            self.physical_memory[block].write(page_offset, ch)
+            return 1
 
 
 
