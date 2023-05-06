@@ -71,7 +71,7 @@ class Frame:    # 一个内存块
 
 
 class MemoryManager:
-    def __init__(self,file_module,  page_size=50, command_size=10, physical_page=50, schedule='FIFO'):
+    def __init__(self,file_module,  page_size=50, command_size=10, physical_page=50, schedule="FIFO"):
 
         self.physical_memory = [Frame() for i in range(physical_page)]  # 物理内存
         self.ps = page_size                                             # 一页（块）的容量
@@ -89,11 +89,13 @@ class MemoryManager:
         self.filelist = []                                              # 未被满足的文件队列
         self.file_module = file_module                                  # 文件模块接口
 
+        print(self.schedule)
+
     def change_FIFO(self):
-        self.schedule = FIFO
+        self.schedule = "FIFO"
 
     def change_LRU(self):
-        self.schedule = LRU
+        self.schedule = "LRU"
 
     def alloc(self, pid, size, filename):  # 给进程分配内存
         s = size
