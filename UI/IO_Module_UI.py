@@ -23,7 +23,7 @@ class IO_Tab(Ui_QWidget, threading.Thread):
         self.io_module = io_module
         self.device_name = []
 
-        self.colcount = 3  # 列数
+        self.colcount = 4  # 列数
 
         self.pushButton_2.clicked.connect(self.update_device_count)
 
@@ -36,7 +36,6 @@ class IO_Tab(Ui_QWidget, threading.Thread):
             elif not e.is_set():  # 进入中断
                 e.wait()  # 正在阻塞状态,当event变为True时就激活
                 target = True
-
 
     def table_update(self):   # 更新三张表中的内容,是实时更新的
         # 界面不如弄成横过来的
@@ -57,23 +56,24 @@ class IO_Tab(Ui_QWidget, threading.Thread):
         self.tableWidget_3.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 
         # 设定行列数和设备当前使用信息
+        #print(device_count)
         self.tableWidget.setRowCount(device_count[0])
         self.tableWidget_2.setRowCount(device_count[1])
-        self.tableWidget_3.setRowCount(device_count[2])
+        self.tableWidget_3.setRowCount(1)
 
         self.tableWidget.setColumnCount(self.colcount)
         self.tableWidget_2.setColumnCount(self.colcount)
         self.tableWidget_3.setColumnCount(self.colcount)
 
-        self.tableWidget.setHorizontalHeaderLabels(['设备名', 'pid', 'IO内容'])
-        self.tableWidget_2.setHorizontalHeaderLabels(['设备名', 'pid', 'IO内容'])
-        self.tableWidget_3.setHorizontalHeaderLabels(['设备名', 'pid', 'IO内容'])
+        self.tableWidget.setHorizontalHeaderLabels(['设备名', 'pid', 'IO内容', '已执行时间'])
+        self.tableWidget_2.setHorizontalHeaderLabels(['设备名', 'pid', 'IO内容', '已执行时间'])
+        self.tableWidget_3.setHorizontalHeaderLabels(['文件名', 'pid', '磁盘读写信息', '已执行时间'])
 
         self.table_info(self.tableWidget, self.device_name[0])
         self.table_info(self.tableWidget_2, self.device_name[1])
-        self.table_info(self.tableWidget_3, self.device_name[2])
+        #self.table_info(self.tableWidget_3, "disk")
 
-    def line_info(self, device_name, pid, content, line, table):
+    def line_info_device(self, device_name, pid, content, time, line, table):
         newItem = QTableWidgetItem(device_name)
         table.setItem(line, 0, newItem)
 
@@ -82,20 +82,27 @@ class IO_Tab(Ui_QWidget, threading.Thread):
 
         newItem = QTableWidgetItem(content)
         table.setItem(line, 2, newItem)
+
+        newItem = QTableWidgetItem(time)
+        table.setItem(line, 3, newItem)
     def table_info(self, tablewidget, device_name):
-        device_info = self.io_module.device_table[device_name]
-        for i, state in enumerate(device_info.is_busy):
-            if state == 0:   # 当前是空闲状态
-                content1 = "NULL"
-                content2 = "NULL"
-                #self.line_info(device_name + str(i), "NULL", "NULL", i, tablewidget)
-                #self.line_info(device_name + str(i), str(current_time), str(current_time), i, tablewidget)
-            else:   # 该设备当前是忙状态
-                for request in device_info.request_queue:
-                    if request.target_device_count == i:
-                        content1 = str(request.source_pid)
-                        content2 = request.content
-            self.line_info(device_name + str(i), content1, content2, i, tablewidget)
+        if device_name != "disk":
+            device_info = self.io_module.device_table[device_name]
+            for i, state in enumerate(device_info.is_busy):
+                if state == 0:   # 当前是空闲状态
+                    content1 = "NULL"
+                    content2 = "NULL"
+                    content3 = "NULL"
+                else:   # 该设备当前是忙状态
+                    for request in device_info.request_queue:
+                        if request.target_device_count == i:
+                            content1 = str(request.source_pid)
+                            content2 = request.content
+                            content3 = str(request.IO_time - request.already_time)
+                self.line_info_device(device_name + str(i), content1, content2, content3, i, tablewidget)
+        elif device_name == "Disk":
+            pass
+
 
     def update_device_count(self):  # 自定义当前设备数量
         # 首先判断当前是否为可修改状态
