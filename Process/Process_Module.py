@@ -142,7 +142,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 if(type == "new"): #如果是个新PCB,也就是老PCB都没有终止
                     self.pcb_pool.append(PCB(self.current_pid, parent_pid=-1, \
                                              child_pid=-1, priority=priority, start_time=current_time, \
-                                             page_allocated=alloc_output),file_name= file_name)  #pc_end=2 , content = "cpu 2;output printer asdfasdf 3;cpu 3"))   # 暂时
+                                             page_allocated=alloc_output,file_name= file_name))  #pc_end=2 , content = "cpu 2;output printer asdfasdf 3;cpu 3"))   # 暂时
                     self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
                 elif(type == "old"):
                     self.pcb_pool[self.loc_pid_inPool(self.current_pid)].update(self.current_pid, parent_pid=-1, \
