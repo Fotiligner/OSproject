@@ -292,7 +292,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 name_of_file =self.pcb_pool[self.loc_pid_inPool(self.running_pid)].file_name
             alloc_output = self.memory_module.alloc(self.chd_pid, self.page_per_process,name_of_file )
             if alloc_output >= 0:  # 内存分配成功
-
+                pass
 
         elif command[0] == "exit":
             if self.running_pid != -1:
