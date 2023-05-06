@@ -25,6 +25,7 @@ class IO_Module:
             for i, busy_state in enumerate(self.device_table[request.target_device].is_busy):
                 if busy_state == 0:    # 空闲状态
                     request.target_device_count = i
+                    self.device_table[request.target_device].is_busy[i] = 1
                     break
 
             # 不管是否分配到设备，全部放入设备请求队列中
@@ -32,7 +33,9 @@ class IO_Module:
 
         elif request.is_disk == 1:   # 磁盘IO请求
             self.disk_request_list.append(request)   # disk类request中，默认时间为1，若有传入读写时间则按读写时间来统计
-            if request.file_path in self.file_table.keys() and self.file_table[request.file_path] == 'r':   # 已经存在且处于读状态
+            # 文件表就是有r，w和0三种状态，0就表示这个文件曾经出现过
+            if request.file_path in self.file_table.keys() and (self.file_table[request.file_path] == 'r' \
+                                                               or self.file_table[request.file_path] == '0'):   # 已经存在且处于读状态
                 self.file_table[request.file_path] = request.rw_state
                 request.is_running = 1
             elif request.file_path not in self.file_table.keys():
@@ -49,9 +52,47 @@ class IO_Module:
                 device.is_busy.append(0)
             self.device_table[k] = device
 
-    # def disk_io_run(self):
-    #     # 磁盘IO轮询
-    #     output = []
+    def disk_io_run(self):
+        # 磁盘IO轮询
+        output = []
+
+        # running状态信息更新
+        for request in self.disk_request_list:
+            if request.is_running == 1:  # 正在运行
+                if request.is_finish == 0 and request.is_terminate == 0:
+                    request.already_time += 1
+
+                    if request.already_time == request.IO_time:       # 完成了IO操作，显示相应的信息，并且回传给进程模块
+
+
+                        # request完成状态
+                        request.is_finish = 1
+                        dict = {}
+                        dict['pid'] = request.source_pid
+                        dict['file_path'] = request.file_path
+                        dict['rw_state'] = request.rw_state
+                        output.append(dict)
+
+                        # 回退文件表中当前的rw状态信息
+                        state = '0'
+                        for temp in self.disk_request_list:
+                            if temp.is_finish == 0 and temp.is_terminate == 0 and temp.is_running == 1:
+                                state = temp.rw_state
+
+                        self.file_table[request.file_path] = state
+
+        # 考虑非running的request更新
+        for request in self.disk_request_list:
+            if request.is_running == 0:
+                if request.file_path in self.file_table.keys() and (self.file_table[request.file_path] == 'r' \
+                                                                    or self.file_table[request.file_path] == '0'):  # 已经存在且处于读状态
+                    self.file_table[request.file_path] = request.rw_state
+                    request.is_running = 1
+                elif request.file_path not in self.file_table.keys():
+                    self.file_table[request.file_path] = request.rw_state
+                    request.is_running = 1
+
+        return output
 
     def device_io_run(self):  # 可以考虑多设备同时IO，IO完成后同时返回
         # 设备IO轮询
@@ -79,6 +120,7 @@ class IO_Module:
                             if request_non.target_device_count == -1:
                                 request_non.target_device_count = request.target_device_count
                                 device.is_busy[request.target_device_count] = 1  # 重新占用设备
+                                break
 
         return output
 
