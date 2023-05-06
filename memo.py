@@ -79,15 +79,21 @@ class MemoryManager:
         self.pn = physical_page                                         # 物理内存块数
         self.page_tables = {}                                           # 所有进程的页表
         self.ftables = {}                                               # 所有文件的页表
-        self.schedule = schedule                                        # 调页策略
-        self.allocated = 0                                              # 物理内存已经被分配的块数
-        self.page_fault = 0                                             # 缺页发生次数
-        self.page_access = 0                                            # 页访问次数
-        self.physical_rate = [0]                                        # 内存使用率记录
+        self.schedule = schedule                                        # !!调页策略!!
+        self.allocated = 0                                              # !!这个/pn是缺页率!!物理内存已经被分配的块数
+        self.page_fault = 0                                             # !!缺页发生次数!!
+        self.page_access = 0                                            # !!页访问次数!!
+        self.physical_rate = 0                                          # 内存使用率记录
         self.pidlist=[]                                                 # 未被满足的进程队列
         self.sizelist=[]                                                # 未被满足的需求块数队列
         self.filelist = []                                              # 未被满足的文件队列
         self.file_module = file_module                                  # 文件模块接口
+
+    def change_FIFO(self):
+        self.schedule = FIFO
+
+    def change_LRU(self):
+        self.schedule = LRU
 
     def alloc(self, pid, size, filename):  # 给进程分配内存
         s = size
@@ -160,10 +166,10 @@ class MemoryManager:
         elif block ==-1:    #缺页中断
             if self.schedule == 'LRU':
                 block=self.LRU(ptable)
-                self.Lage(page, ptable)
             elif self.schedule == 'FIFO':
                 block=self.FIFO(ptable)
-                self.Fage(page, ptable)
+            self.Lage(page, ptable)
+            self.Fage(page, ptable)
             self.physical_memory[block].is_allocated = 2
             self.physical_memory[block].content = self.file_module.disk.read_block(self.file_module.disk.data_base + ptable.table[page].outaddress) # 接口获取页内信息
             ptable.table[page].frame=block
@@ -172,8 +178,7 @@ class MemoryManager:
             print("缺页中断")
             return -1
         elif block>=0:
-            if self.schedule == 'LRU':
-                self.Lage(block,ptable)
+            self.Lage(block,ptable)
             return self.physical_memory[block].getonechar(page_offset)
 
     def page_PC(self, pid, address):
@@ -190,10 +195,10 @@ class MemoryManager:
         elif block ==-1:  #缺页中断
             if self.schedule == 'LRU':
                 block=self.LRU(ptable)
-                self.Lage(page, ptable)
             elif self.schedule == 'FIFO':
                 block=self.FIFO(ptable)
-                self.Fage(page, ptable)
+            self.Lage(page, ptable)
+            self.Fage(page, ptable)
             self.physical_memory[block].is_allocated = 2
             self.physical_memory[block].content = self.file_module.disk.read_block(self.file_module.disk.data_base + ptable.table[page].outaddress)  # 接口获取页内信息
             ptable.table[page].frame = block
@@ -274,10 +279,10 @@ class MemoryManager:
         elif block ==-1:    #缺页中断
             if self.schedule == 'LRU':
                 block=self.LRU(ftable)
-                self.Lage(page, ftable)
             elif self.schedule == 'FIFO':
                 block=self.FIFO(ftable)
-                self.Fage(page, ftable)
+            self.Lage(page, ftable)
+            self.Fage(page, ftable)
             self.physical_memory[block].is_allocated = 1
             self.physical_memory[block].content = self.file_module.disk.read_block(self.file_module.disk.data_base + ftable.table[page].outaddress) # 接口获取页内信息
             ftable.table[page].frame=block
@@ -302,10 +307,10 @@ class MemoryManager:
         elif block ==-1:    #缺页中断
             if self.schedule == 'LRU':
                 block=self.LRU(ftable)
-                self.Lage(page, ftable)
             elif self.schedule == 'FIFO':
                 block=self.FIFO(ftable)
-                self.Fage(page, ftable)
+            self.Lage(page, ftable)
+            self.Fage(page, ftable)
             self.physical_memory[block].is_allocated = 1
             self.physical_memory[block].content = self.file_module.disk.read_block(self.file_module.disk.data_base + ftable.table[page].outaddress) # 接口获取页内信息
             ftable.table[page].frame = block
@@ -314,8 +319,7 @@ class MemoryManager:
             print("缺页中断")
             return -1
         elif block>=0:
-            if self.schedule == 'LRU':
-                self.Lage(block,ftable)
+            self.Lage(block,ftable)
             self.physical_memory[block].write(page_offset, ch)
             return 1
 
