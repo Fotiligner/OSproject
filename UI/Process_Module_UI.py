@@ -81,7 +81,7 @@ class readyQueueLabel(QLabel):
         self.process_module = process_module
         self.layout = QVBoxLayout()
 
-        label = QLabel("waiting队列")
+        label = QLabel("ready队列")
         label.setAlignment(Qt.AlignCenter)
         self.layout.addWidget(label)
 
