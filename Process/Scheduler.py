@@ -1,6 +1,6 @@
-import Process_Utils
+import Process.Process_Utils
 #专门负责进程调度的类
-class ProcessScheduler(Process_Utils.Process_Utils):
+class ProcessScheduler(Process.Process_Utils.Process_Utils):
     def __init__(self):
         self.schedule_type="Preempting"
         self.ready_queue = []

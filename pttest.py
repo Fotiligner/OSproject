@@ -5,18 +5,18 @@ from PyQt5.QtGui import QPainter, QBrush, QColor, QPen
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QGraphicsView, \
     QGraphicsScene, QGraphicsItem
 
-file_count = 20
+file_count = 50
 
 #绘制格子的类
 class Grid(QGraphicsScene):
     def __init__(self):
-        super().__init__()
+        super().__init__()             #调用父类（超类）的一种方法
         self.setSceneRect(0, 0, 1200, 900)
         pen = QPen(Qt.black, 1, Qt.SolidLine)
         count = 0
         # 添加方块并设置颜色
         for i in range(0, 900, 100):
-            for j in range(0, 1200, 100):
+            for j in range(0, 1000, 100):
                 self.add_box(j,i,pen,count)
                 count += 1
     def add_box(self,i,j,pen,count):
