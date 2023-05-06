@@ -4,10 +4,8 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QGraphicsView, \
     QGraphicsScene, QGraphicsItem, QGraphicsProxyWidget, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
     QPushButton, QHBoxLayout, QScrollArea, QSizePolicy, QLineEdit,QScrollBar
-
 import Process.Process_Module
 import UI.UI_utils
-# 进程模块的TAB
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
 
@@ -37,7 +35,7 @@ class currentStatusLabel(QLabel):
         layout.addWidget(self.text_label2)
         self.setLayout(layout)
 
-    #根据按钮调整算法
+    #更新文本
     def updateText(self):
         ##获取对应值
         Number_of_missing_pages=self.memory_module.page_fault
@@ -68,34 +66,35 @@ class SchedulerLabel(QLabel):
         self.button2.clicked.connect(lambda: self.setTextFromButton1(self.button2))
         self.setLayout(layout)
 
-
+    #切换的事件
     def setTextFromButton1(self, button):
-        #if(self.memory_module.schedule != null):
-        #    print(self.memory_module.schedule)
-        #else:
-        #    print("11111")
-        self.text_label.setText(button.text())
+        if(button.text()=="FIFO"):
+            self.memory_module.change_FIFO()
+        else:
+            self.memory_module.change_LRU()
+        self.text_label.setText(f"当前调页算法:{self.memory_module.schedule}")
 
+
+#内存模块的TAB
 class MemoTab(QWidget):
     def __init__(self, memo_module):
         super().__init__()
-        self.process_module = memo_module
+        self.memo_module = memo_module
 
         layout = QVBoxLayout()
 
-        #第二行
+        #第一行
         row2_layout = QHBoxLayout()
         label4 = Label4("晗哥的图的位置")
         row2_layout.addWidget(label4)
 
-        #第三行
+        #第二行
         row3_layout = QHBoxLayout()
-        label5 = currentStatusLabel(memo_module)
+        label5 = currentStatusLabel(self.memo_module)
         row3_layout.addWidget(label5)
         UI.UI_utils.addLine(row3_layout, "V")
-        label6 = SchedulerLabel("调度算法之类的")
+        label6 = SchedulerLabel(self.memo_module)
         row3_layout.addWidget(label6)
-        UI.UI_utils.addLine(layout, "H")
         layout.addLayout(row2_layout)
         UI.UI_utils.addLine(layout, "H")
         layout.addLayout(row3_layout)
