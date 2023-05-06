@@ -5,8 +5,9 @@ from PyQt5.QtWidgets import *
 import IO_Module as IO_Module
 
 import PyQt5.QtWidgets as QtWidgets
+from PyQt5.QtWidgets import QPushButton
 
-from UI.IO_ui import Ui_QWidget
+from UI.IOui import Ui_QWidget
 
 # 用于根据时钟实时显示IO状态
 import threading
@@ -21,9 +22,10 @@ class IO_Tab(Ui_QWidget, threading.Thread):
         self.setupUi(self)
         self.io_module = io_module
         self.device_name = []
-        self.device_count = []
 
         self.colcount = 3  # 列数
+
+        self.pushButton_2.clicked.connect(self.update_device_count)
 
     def run(self):   # 线程函数
         target = True  # 进程时钟控制辅助指标
@@ -43,10 +45,11 @@ class IO_Tab(Ui_QWidget, threading.Thread):
         self.tableWidget_3.clear()
 
         #print(self.io_module.device_table["printer"].is_busy)
+        device_count = []   # 设备数量，可自定义
 
         for k, v in self.io_module.device_table.items():  # 设备名和设备device类
             self.device_name.append(k)
-            self.device_count.append(v.device_count)
+            device_count.append(v.device_count)
 
         # 设为内容不可修改状态
         self.tableWidget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
@@ -54,9 +57,9 @@ class IO_Tab(Ui_QWidget, threading.Thread):
         self.tableWidget_3.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 
         # 设定行列数和设备当前使用信息
-        self.tableWidget.setRowCount(self.device_count[0])
-        self.tableWidget_2.setRowCount(self.device_count[1])
-        self.tableWidget_3.setRowCount(self.device_count[2])
+        self.tableWidget.setRowCount(device_count[0])
+        self.tableWidget_2.setRowCount(device_count[1])
+        self.tableWidget_3.setRowCount(device_count[2])
 
         self.tableWidget.setColumnCount(self.colcount)
         self.tableWidget_2.setColumnCount(self.colcount)
@@ -94,13 +97,26 @@ class IO_Tab(Ui_QWidget, threading.Thread):
                         content2 = request.content
             self.line_info(device_name + str(i), content1, content2, i, tablewidget)
 
-        if device_name == "keyboard":
-            test = []
-            for request in device_info.request_queue:
-                test.append(request.target_device_count)
+    def update_device_count(self):  # 自定义当前设备数量
+        # 首先判断当前是否为可修改状态
+        is_changeable = True
+        for k, v in self.io_module.device_table.items():  # 设备名和设备device类
+            for request in v.request_queue:
+                if request.is_finish != 1:
+                    is_changeable = False
+                    break
 
-            if len(test) != 0:
-                print(test)
+        if not is_changeable:
+            reply = QMessageBox.information(self, "Error", "There are some requests waiting",  QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+        else:
+            print("hello")
+            count = self.spinBox.value()
+            device_name = self.comboBox.currentText()
+
+            self.io_module.device_table[device_name].device_count = count
+            self.io_module.device_table[device_name].is_busy = [0] * count
+
+
 
 
 

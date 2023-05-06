@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'IO_ui.ui'
+# Form implementation generated from reading ui file 'IOui.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.9
 #
@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_QWidget(QtWidgets.QWidget):
     def setupUi(self, QWidget):
         QWidget.setObjectName("QWidget")
-        # QWidget.resize(1071, 868)
+        #QWidget.resize(1071, 868)
         self.verticalLayoutWidget = QtWidgets.QWidget(QWidget)
         self.verticalLayoutWidget.setGeometry(QtCore.QRect(50, 40, 941, 731))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
@@ -28,8 +28,12 @@ class Ui_QWidget(QtWidgets.QWidget):
         self.horizontalLayout_2.addWidget(self.pushButton)
         self.comboBox = QtWidgets.QComboBox(self.verticalLayoutWidget)
         self.comboBox.setObjectName("comboBox")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
         self.horizontalLayout_2.addWidget(self.comboBox)
         self.spinBox = QtWidgets.QSpinBox(self.verticalLayoutWidget)
+        self.spinBox.setMaximum(10)
         self.spinBox.setObjectName("spinBox")
         self.horizontalLayout_2.addWidget(self.spinBox)
         self.pushButton_2 = QtWidgets.QPushButton(self.verticalLayoutWidget)
@@ -70,4 +74,7 @@ class Ui_QWidget(QtWidgets.QWidget):
         _translate = QtCore.QCoreApplication.translate
         QWidget.setWindowTitle(_translate("QWidget", "Form"))
         self.pushButton.setText(_translate("QWidget", "PushButton"))
+        self.comboBox.setItemText(0, _translate("QWidget", "printer"))
+        self.comboBox.setItemText(1, _translate("QWidget", "screen"))
+        self.comboBox.setItemText(2, _translate("QWidget", "keyboard"))
         self.pushButton_2.setText(_translate("QWidget", "PushButton"))

@@ -33,10 +33,30 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="comboBox"/>
+       <widget class="QComboBox" name="comboBox">
+        <item>
+         <property name="text">
+          <string>printer</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>screen</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>keyboard</string>
+         </property>
+        </item>
+       </widget>
       </item>
       <item>
-       <widget class="QSpinBox" name="spinBox"/>
+       <widget class="QSpinBox" name="spinBox">
+        <property name="maximum">
+         <number>10</number>
+        </property>
+       </widget>
       </item>
       <item>
        <widget class="QPushButton" name="pushButton_2">
