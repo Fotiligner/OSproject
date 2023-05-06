@@ -306,12 +306,16 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 self.ready_queue.append(self.chd_pid)
                 #  将父进程 也就是running_pid 的子进程进行修改
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].child_pid = self.chd_pid
+                #  将父进程的 pc也要更改
+                self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc=\
+                    self.add_pc(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)
+
             else:# 内存分配不成功
                 if alloc_output == -2:
                     print("error" + " the file does not exist")
                 elif alloc_output == -1:
                     print("error" + " not enough room for pages of this process")
-                pass
+
 
         elif command[0] == "exit":
             if self.running_pid != -1:
@@ -342,7 +346,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
         self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "terminated" #把当前进程改成中止
         self.running_pid = -1  # 把当前运行的改为没有
 
-        self.gantt_graph()
+        ##self.gantt_graph()
 
     ## 使用kill命令终止的函数 感觉其实也没有太多变化
     def kill_process(self,pid):   # 注意，不一定是将当前运行的进程kill掉，所以要区别running_pid的使用情况
