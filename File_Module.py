@@ -3,7 +3,7 @@ import os
 import prettytable
 from enum import Enum
 
-disk_path = os.path.abspath(r"..") + "\\MYDISK"
+disk_path = os.path.abspath(r".") + "\\MYDISK"
 
 
 class Ret_State(Enum):
@@ -19,7 +19,7 @@ class Disk:
     file_path = None  # 磁盘文件路径
     track_tot_num = 100  # 总磁道数
     sector_per_track = 10  # 每个磁道的扇区数
-    blk_size = 60  # 块的大小，以字符为单位
+    blk_size = 20  # 块的大小，以字符为单位
     blk_tot_num = track_tot_num * sector_per_track  # 总块数
     size = blk_tot_num * blk_size  # 总大小，以字符为单位
     super_blk_num = 80  # 超级块的数目
@@ -50,6 +50,7 @@ class Disk:
         :param buf: 需写入内容
         :return:
         """
+        buf=buf.replace('\n','\1')  # 因为\n在文件中其实是\r\n，占两个偏移量，却只算一个字符
         with open(self.file_path, 'r+') as f:
             f.seek(loc * self.blk_size)
             if len(buf) < self.blk_size:
@@ -65,7 +66,8 @@ class Disk:
         """
         with open(self.file_path, 'r') as f:
             f.seek(loc * self.blk_size)
-            return f.read(self.blk_size)
+            buf=f.read(self.blk_size)
+            return buf.replace('\1','\n')
 
     def display(self):
         """
@@ -338,10 +340,12 @@ class File_Module:
         new_blk_num = int((fcb.size + 1) / self.disk.blk_size) + 1
         if new_blk_num > fcb.blk_num:
             new_disk_loc = self.disk.disk_alloc(new_blk_num - fcb.blk_num)
+            print('more alloc'+str(new_disk_loc))
             fcb.disk_loc.extend(new_disk_loc)
             fcb.blk_num = new_blk_num
         for i in range(fcb.blk_num):
             self.disk.write_block(self.disk.data_base + fcb.disk_loc[i], buf)
+            print("buf:%s" % repr(buf))
             buf = buf[self.disk.blk_size:]
 
     def find_node(self, path):
@@ -509,6 +513,7 @@ class File_Module:
 if __name__ == '__main__':
     file_system = File_Module(disk_path)
     active = True
+    print(file_system.disk.read_block(201))
     while active:
         cmds = input(file_system.work_path + ':')
         cmd = cmds.split()
