@@ -90,10 +90,16 @@ class MemoryManager:
         self.file_module = file_module                                  # 文件模块接口
 
     def change_FIFO(self):
-        self.schedule = FIFO
+        self.schedule = 'FIFO'
 
     def change_LRU(self):
-        self.schedule = LRU
+        self.schedule = 'LRU'
+
+    def search_file(self, filename):
+        if filename in self.ftables.keys():
+            return 1
+        return -1
+
 
     def alloc(self, pid, size, filename):  # 给进程分配内存
         s = size
