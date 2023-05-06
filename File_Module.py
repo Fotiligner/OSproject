@@ -19,7 +19,7 @@ class Disk:
     file_path = None  # 磁盘文件路径
     track_tot_num = 100  # 总磁道数
     sector_per_track = 10  # 每个磁道的扇区数
-    blk_size = 20  # 块的大小，以字符为单位
+    blk_size = 60  # 块的大小，以字符为单位
     blk_tot_num = track_tot_num * sector_per_track  # 总块数
     size = blk_tot_num * blk_size  # 总大小，以字符为单位
     super_blk_num = 80  # 超级块的数目
