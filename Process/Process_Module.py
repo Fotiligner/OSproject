@@ -112,7 +112,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
         #self.schedule_type = args.schedule_type   # "multi_feedback_queue"  "single_queue"
         #self.schedule_algorithm = args.schedule_algorithm  # 仅在single_queue下生效
 
-        self.io_module = IO_Module('./device.json', self.memory_module)  ##之前是../device.json也就是上一级目录, 但是他明明在同级目录下的   Nauhc
+        self.io_module = IO_Module('./device.json', memory_module)  ##之前是../device.json也就是上一级目录, 但是他明明在同级目录下的   Nauhc
         self.memory_module = memory_module
         self.waiting_queue = []
         self.page_per_process = 3
@@ -283,8 +283,14 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
             # 没有就调用falloc
             # 要清除 fwrite(file_name, address, digit)
             self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1
-            self.io_module.add_request(source_pid=self.running_pid, target_device=None, IO_time=int(command[2]), content=None,\
-                                       priority_num=1, is_disk=True, file_path=command[1], rw_state=command[0][0])
+            if command[0] == "read":
+                self.io_module.add_request(source_pid=self.running_pid, target_device=None, IO_time=int(command[2]), content=None,\
+                                       priority_num=1, is_disk=True, file_path=command[1], rw_state=command[0][0], address=None)
+            elif command[0] == "write":
+                self.io_module.add_request(source_pid=self.running_pid, target_device=None, IO_time=int(command[2]), \
+                                           content=command[4], priority_num=1, is_disk=True, file_path=command[1], \
+                                           rw_state=command[0][0], address=command[3])
+
             self.io_interrupt("disk_io")
         elif command[0] == "output" or command[0] == "input":  # output + device_name + content + time
             self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1
@@ -292,7 +298,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
             # self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1  # 指令行数增加，指向下一条指令
 
             self.io_module.add_request(source_pid=self.running_pid, target_device=command[1], IO_time=int(command[3]), content=command[2],\
-                                       priority_num=1, is_disk=False, file_path=None, rw_state=None)
+                                       priority_num=1, is_disk=False, file_path=None, rw_state=None, address=None)
             self.io_interrupt("device_io")
         elif command[0] == "access":
             self.pcb_pool[self.loc_pid_inPool(self.running_pid)].already_time += 1  # 进程进度加一（already_time）

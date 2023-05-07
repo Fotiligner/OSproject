@@ -35,13 +35,28 @@ class IO_Module:
         elif request.is_disk == 1:   # 磁盘IO请求
             self.disk_request_list.append(request)   # disk类request中，默认时间为1，若有传入读写时间则按读写时间来统计
             # 文件表就是有r，w和0三种状态，0就表示这个文件曾经出现过
-            if request.file_path in self.file_table.keys() and (self.file_table[request.file_path] == 'r' \
-                                                               or self.file_table[request.file_path] == '0'):   # 已经存在且处于读状态
-                self.file_table[request.file_path] = request.rw_state
-                request.is_running = 1
-            elif request.file_path not in self.file_table.keys():
-                self.file_table[request.file_path] = request.rw_state
-                request.is_running = 1
+            if request.is_running == 0:
+                # 这里的读写我们实现的是共享内存的情况，也即只考虑单个文件不能再同一时刻被写和读
+                # 对于写来说，我们不去和读进行组合，若要写的文件不再内存，则会自己触发一次调入IO
+                # 问内存当前文件是否在内存中 search file
+                # 没有就调用falloc
+                # 要清除 fwrite(file_name, address, digit)
+                if request.file_path in self.file_table.keys() and (self.file_table[request.file_path] == 'r' \
+                                                                    or self.file_table[request.file_path] == '0'):  # 已经存在且处于读状态
+                    if self.memory_module.search_file(request.file_path) == 1:
+                        self.file_table[request.file_path] = request.rw_state
+                        request.is_running = 1
+                    else:
+                        target = self.memory_module.falloc(request.file_path)
+                        if target == 1:  # 分配成功
+                            self.file_table[request.file_path] = request.rw_state
+                            request.is_running = 1
+                elif request.file_path not in self.file_table.keys():
+                    # 根本不存在，没有进来过，直接开始分配
+                    target = self.memory_module.falloc(request.file_path)
+                    if target == 1:  # 分配成功
+                        self.file_table[request.file_path] = request.rw_state
+                        request.is_running = 1
 
     def init_device(self, device_filename):     # 初始化当前设备属性和状态
         with open(device_filename, 'r', encoding='utf-8') as f:
@@ -64,8 +79,10 @@ class IO_Module:
                     request.already_time += 1
 
                     if request.already_time == request.IO_time:       # 完成了IO操作，显示相应的信息，并且回传给进程模块
-
-
+                        # 针对写指令，在完成时刻进行真正的内容写入工作
+                        if request.rw_state == "w":
+                            self.memory_module.fwrite(request.file_path, request.write_address, request.content)
+                            self.memory_module.ffree(request.file_path)
                         # request完成状态
                         request.is_finish = 1
                         dict = {}
@@ -86,17 +103,30 @@ class IO_Module:
         for request in self.disk_request_list:
             if request.is_running == 0:
                 # 这里的读写我们实现的是共享内存的情况，也即只考虑单个文件不能再同一时刻被写和读
+                # 对于写来说，我们不去和读进行组合，若要写的文件不再内存，则会自己触发一次调入IO
                 # 问内存当前文件是否在内存中 search file
                 # 没有就调用falloc
                 # 要清除 fwrite(file_name, address, digit)
                 if request.file_path in self.file_table.keys() and (self.file_table[request.file_path] == 'r' \
                                                                     or self.file_table[request.file_path] == '0'):  # 已经存在且处于读状态
-
-                    self.file_table[request.file_path] = request.rw_state
-                    request.is_running = 1
+                    if self.memory_module.search_file(request.file_path) == 1:
+                        self.file_table[request.file_path] = request.rw_state
+                        request.is_running = 1
+                    else:
+                        target = self.memory_module.falloc(request.file_path)
+                        if target == 1: # 分配成功
+                            self.file_table[request.file_path] = request.rw_state
+                            request.is_running = 1
+                        else:
+                            continue
                 elif request.file_path not in self.file_table.keys():
-                    self.file_table[request.file_path] = request.rw_state
-                    request.is_running = 1
+                    # 根本不存在，没有进来过，直接开始分配
+                    target = self.memory_module.falloc(request.file_path)
+                    if target == 1:  # 分配成功
+                        self.file_table[request.file_path] = request.rw_state
+                        request.is_running = 1
+                    else:
+                        continue
 
         return output
 
@@ -168,6 +198,9 @@ class Request:
         self.file_path = args["file_path"]
         self.is_running = 0   # 0表示读写IO为阻塞状态，1表示读写IO为非阻塞状态（正常运行）
         self.rw_state = args["rw_state"]   # 'r' or 'w'
+        self.write_address = args["address"]
+
+
 
 
 
