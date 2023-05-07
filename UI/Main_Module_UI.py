@@ -273,7 +273,7 @@ class MainTab(QWidget):
         is_executable = True
         for i in selected_items:
             print(i.node_name)
-            if len(i.node_name) < 4 or (len(i.node_name) >= 4 and i.node_name[-4:] != ".exe"):
+            if len(i.node_name) < 4 or (len(i.node_name) >= 4 and not(i.node_name[-4:] == ".exe" or i.node_name[-2:] == ".e")):
                 is_executable = False
                 break
 
@@ -296,15 +296,15 @@ class MainTab(QWidget):
             self.setWindowTitle(u'新建文件')
 
             self.grid = QGridLayout()
-            self.grid.setContentsMargins(100, 30, 200, 30)
-            self.grid.setSpacing(50)  # 设置间距
-            self.grid.addWidget(QLabel(u'文件名'), 0, 0, 1, 2)
+            # self.grid.setContentsMargins(100, 30, 200, 30)
+            # self.grid.setSpacing(50)  # 设置间距
+            self.grid.addWidget(QLabel(u'文件名'), 0, 0)
             self.file_name_edit = QLineEdit(parent=self)
             reg = QRegExp("[^ \\/:*?\"<>|]*")  # 设置文本不允许出现的字符内容
             pValidator = QRegExpValidator(self)  # 自定义文本验证器
             pValidator.setRegExp(reg)  # 设置属性
             self.file_name_edit.setValidator(pValidator)
-            self.grid.addWidget(self.file_name_edit, 0, 1, 1, 2)
+            self.grid.addWidget(self.file_name_edit, 0, 1)
 
             btn_box = QDialogButtonBox(Qt.Horizontal, self)
             btn_box_plus = QPushButton(u'高级', self)
@@ -324,30 +324,30 @@ class MainTab(QWidget):
         def ui_plus(self):
             del_layout(self.grid)
 
-            self.grid.setContentsMargins(100, 30, 200, 30)
-            self.grid.setSpacing(50)  # 设置间距
+            # self.grid.setContentsMargins(100, 30, 200, 30)
+            # self.grid.setSpacing(50)  # 设置间距
 
-            self.grid.addWidget(QLabel(u'文件名'), 0, 0, 3, 2)
+            self.grid.addWidget(QLabel(u'文件名'), 0, 0, 1, 1)
             self.file_name_edit = QLineEdit(parent=self)
             reg = QRegExp("[^ \\/:*?\"<>|]*")
             pValidator = QRegExpValidator(self)
             pValidator.setRegExp(reg)
             self.file_name_edit.setValidator(pValidator)
-            self.grid.addWidget(self.file_name_edit, 0, 1, 3, 2)
+            self.grid.addWidget(self.file_name_edit, 0, 1, 1, 2)
 
-            self.grid.addWidget(QLabel(u'文件大小'), 1, 0, 3, 2)
+            self.grid.addWidget(QLabel(u'文件大小'), 1, 0, 1, 1)
             self.file_size_edit = QLineEdit(parent=self)
             reg = QRegExp("[0-9]*")
             pValidator = QRegExpValidator(self)  # 自定义文本验证器
             pValidator.setRegExp(reg)  # 设置属性
             self.file_size_edit.setValidator(pValidator)
-            self.grid.addWidget(self.file_size_edit, 1, 1, 3, 2)
+            self.grid.addWidget(self.file_size_edit, 1, 1, 1, 2)
 
-            self.grid.addWidget(QLabel(u'分配方式'), 2, 0, 3, 2)
+            self.grid.addWidget(QLabel(u'分配方式'), 2, 0)
             self.select_btn_def = QRadioButton(u'默认', parent=self)
-            self.grid.addWidget(self.select_btn_def, 2, 1, 3, 2)
+            self.grid.addWidget(self.select_btn_def, 2, 1, 1, 1)
             self.select_btn_ran = QRadioButton(u'随机', parent=self)
-            self.grid.addWidget(self.select_btn_ran, 2, 2, 3, 2)
+            self.grid.addWidget(self.select_btn_ran, 2, 2, 1, 1)
             self.select_btn_def.setChecked(True)
 
             btn_box = QDialogButtonBox(Qt.Horizontal, self)
@@ -355,7 +355,7 @@ class MainTab(QWidget):
             btn_box.addButton(btn_box_ok, QDialogButtonBox.AcceptRole)
             btn_box_cancel = QPushButton(u'取消', self)
             btn_box.addButton(btn_box_cancel, QDialogButtonBox.RejectRole)
-            self.grid.addWidget(btn_box, 3, 0, 3, 2)
+            self.grid.addWidget(btn_box, 3, 0, 1, 3)
 
             btn_box.accepted.connect(self.accept)
             btn_box.rejected.connect(self.reject)
