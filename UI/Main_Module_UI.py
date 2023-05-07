@@ -40,7 +40,6 @@ class EmittingStr(QtCore.QObject):
         self.textBrowser.ensureCursorVisible()
 
 
-
 class FileNode(QGraphicsPixmapItem):
     def __init__(self, node_name: str, node_type: str, parent=None):
         super().__init__(parent)
@@ -92,7 +91,7 @@ def del_layout(layout):
 
 
 class MyView(QGraphicsView):  # 视图创建 为grid提供场景
-    def __init__(self, scene, file_module, file_signal,parent=None):
+    def __init__(self, scene, file_module, file_signal, parent=None):
         super().__init__(parent)
 
         self.parent = parent
@@ -168,13 +167,13 @@ class MyView(QGraphicsView):  # 视图创建 为grid提供场景
 
 # 主页, 文件系统的tab
 class MainTab(QWidget):
-    def __init__(self, file_module, process_module,file_signal):
+    def __init__(self, file_module, process_module, file_signal):
         super().__init__()
-        self.file_signal=file_signal
+        self.file_signal = file_signal
         self.scene = GridScene()
         self.file_module = file_module
         self.process_module = process_module
-        self.view = MyView(self.scene, self.file_module,self.file_signal)  # view搭配scene
+        self.view = MyView(self.scene, self.file_module, self.file_signal)  # view搭配scene
         layout = QVBoxLayout(self)
         layout.addWidget(self.view)
         self.setLayout(layout)
@@ -269,6 +268,7 @@ class MainTab(QWidget):
             elif i.node_type == 'f':
                 self.view.file_module.rm(i.node_name)
         self.file_signal.modified.emit()
+
     def ui_run(self, selected_items):
         is_executable = True
         for i in selected_items:
@@ -374,7 +374,6 @@ class MainTab(QWidget):
             else:
                 self.view.file_module.touch(name=file_name)
             self.file_signal.modified.emit()
-
 
     def ui_mkdir(self):
         name, ok = QInputDialog.getText(self, '新建目录', '输入目录名')

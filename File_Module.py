@@ -8,6 +8,7 @@ from enum import Enum
 
 disk_path = os.path.abspath(r".") + "\\MYDISK"
 
+
 class Ret_State(Enum):
     Success = 0
     Error_File_Exist = 1
@@ -140,7 +141,7 @@ class Disk:
         :return:分配的磁盘块的下标列表。
         """
         addr = []
-        if alloc_method=="default":
+        if alloc_method == "default":
             bitmap = list(self.bitmap)
             for i in range(self.data_blk_num):
                 if bitmap[i] == '0':
@@ -155,10 +156,10 @@ class Disk:
             else:
                 addr = []
         elif alloc_method == "random":
-            list_index=[i.start() for i in re.finditer('0',self.bitmap)]
-            addr=random.sample(list_index,num)
+            list_index = [i.start() for i in re.finditer('0', self.bitmap)]
+            addr = random.sample(list_index, num)
             for i in addr:
-                self.write_block(i + self.data_base, ' '*self.blk_size)
+                self.write_block(i + self.data_base, ' ' * self.blk_size)
         return addr
 
 
@@ -170,10 +171,10 @@ class Dir:
 
 
 class FCB:
-    def __init__(self, name, disk_loc, size, auth,blk_num=None):
+    def __init__(self, name, disk_loc, size, auth, blk_num=None):
         self.size = size  # 文件大小，以字符为单位，不包括结束符'\0'
         if blk_num:
-            self.blk_num=blk_num
+            self.blk_num = blk_num
         else:
             self.blk_num = int((size + 1) / Disk.blk_size) + 1
         self.name = name
@@ -228,7 +229,7 @@ class File_Module:
                     blk_num = int(nodes[index + 3])
                     for i in range(blk_num):
                         disk_loc.append(int(nodes[index + 4 + i]))
-                    new_fcb = FCB(name, disk_loc, size, auth,blk_num)
+                    new_fcb = FCB(name, disk_loc, size, auth, blk_num)
                     new_fcb.parent = now_dir
                     now_dir.childs.append(new_fcb)
                     index = index + 3 + blk_num
@@ -326,26 +327,26 @@ class File_Module:
         del dir_node
         self.write_dir_tree()
 
-    def read_file(self, fcb,algo="FCFS"):
+    def read_file(self, fcb, algo="FCFS"):
         """
         读取文件内容。
         :param fcb:给定的fcb。
         :return: 返回文件内容，字符串类型。
         """
-        buf = [""for i in range(fcb.blk_num)]
-        ret_list=self.head_seek(fcb.disk_loc,algo,137)
+        buf = ["" for i in range(fcb.blk_num)]
+        ret_list = self.head_seek(fcb.disk_loc, algo, 137)
         for ret in ret_list:
-            if ret[1]== -1:
+            if ret[1] == -1:
                 continue
-            str_temp=self.disk.read_block(self.disk.data_base+ret[0])
-            buf[ret[1]]=str_temp
+            str_temp = self.disk.read_block(self.disk.data_base + ret[0])
+            buf[ret[1]] = str_temp
             if str_temp.find('\0') != -1:
                 str_temp = str_temp[: str_temp.find('\0') + 1]
-                buf[ret[1]]=str_temp
-        buf=''.join(buf)
+                buf[ret[1]] = str_temp
+        buf = ''.join(buf)
         return buf[:-1]  # 去除末尾的结尾符
 
-    def head_seek(self,disk_locs,algo,init_loc):
+    def head_seek(self, disk_locs, algo, init_loc):
         """
         磁头寻道算法
         :param disk_loc:磁道序列
@@ -353,36 +354,72 @@ class File_Module:
         :return: 不同算法返回的队列
         """
         # 谨记python中list是可变元素
-        index_list = []
-        ret_list=[]
+        index_lists = []
+        ret_lists = []
+        init_index_list = [init_loc, -1]
         if init_loc in disk_locs:
-            init_index=disk_locs.index(init_loc)
-            index_list.append([init_loc,init_index])
-        else:
-            index_list.append([init_loc,-1])
+            init_index_list[1] = disk_locs.index(init_loc)
+        index_lists.append(init_index_list)
         for i in range(len(disk_locs)):
-            index_list.append([disk_locs[i],i])
+            if init_loc != disk_locs[i]:
+                index_lists.append([disk_locs[i], i])
 
         if algo == "FCFS":
-            ret_list=index_list
+            ret_lists = index_lists
         elif algo == "SSTF":
-            ret_list.append(index_list[0])
-            index_list=index_list[1:]
-            last_loc=ret_list[0][0]
-            while len(index_list)>0:
-                min_dis=abs(index_list[0][0]-last_loc)
-                min_index=index_list[0]
-                for i in index_list[1:]:
-                    if abs(i[0]-last_loc)<min_dis:
-                        min_dis=abs(i[0]-last_loc)
-                        min_index=i
-                ret_list.append(min_index)
-                last_loc=min_index[0]
-                index_list.remove(min_index)
+            ret_lists.append(index_lists[0])
+            index_lists = index_lists[1:]
+            last_loc = ret_lists[0][0]
+            while len(index_lists) > 0:
+                min_dis = abs(index_lists[0][0] - last_loc)
+                min_index = index_lists[0]
+                for i in index_lists[1:]:
+                    if abs(i[0] - last_loc) < min_dis:
+                        min_dis = abs(i[0] - last_loc)
+                        min_index = i
+                ret_lists.append(min_index)
+                last_loc = min_index[0]
+                index_lists.remove(min_index)
         elif algo == "SCAN":
-            ret_list.extend(disk_locs)
-            ret_list=ret_list.sort()
-        return ret_list
+            index_lists.sort(key=lambda x: x[0])
+            init_index = index_lists.index(init_index_list)
+            if init_index == 0:
+                ret_lists = index_lists
+            else:
+                if self.disk.data_blk_num - 1 not in disk_locs:
+                    index_lists.append([self.disk.data_blk_num - 1, -1])
+                ret_lists.extend(index_lists[init_index:])
+                ret_lists.extend(reversed(index_lists[:init_index]))
+        elif algo == "C-SCAN":
+            index_lists.sort(key=lambda x: x[0])
+            init_index = index_lists.index(init_index_list)
+            if init_index == 0:
+                ret_lists = index_lists
+            else:
+                if self.disk.data_blk_num - 1 not in disk_locs:
+                    index_lists.append([self.disk.data_blk_num - 1, -1])
+                if 0 not in disk_locs:
+                    index_lists.append([0, -1])
+                index_lists.sort(key=lambda x: x[0])
+                ret_lists.extend(index_lists[init_index:])
+                ret_lists.extend(index_lists[:init_index])
+        elif algo == "LOOK":
+            index_lists.sort(key=lambda x: x[0])
+            init_index = index_lists.index(init_index_list)
+            if init_index == 0:
+                ret_lists = index_lists
+            else:
+                ret_lists.extend(index_lists[init_index:])
+                ret_lists.extend(reversed(index_lists[:init_index]))
+        elif algo == "C-LOOK":
+            index_lists.sort(key=lambda x: x[0])
+            init_index = index_lists.index(init_index_list)
+            if init_index == 0:
+                ret_lists = index_lists
+            else:
+                ret_lists.extend(index_lists[init_index:])
+                ret_lists.extend(index_lists[:init_index])
+        return ret_lists
 
     def write_file(self, fcb, buf):
         """
