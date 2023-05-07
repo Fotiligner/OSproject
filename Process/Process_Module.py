@@ -112,7 +112,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
         #self.schedule_type = args.schedule_type   # "multi_feedback_queue"  "single_queue"
         #self.schedule_algorithm = args.schedule_algorithm  # 仅在single_queue下生效
 
-        self.io_module = IO_Module('./device.json')  ##之前是../device.json也就是上一级目录, 但是他明明在同级目录下的   Nauhc
+        self.io_module = IO_Module('./device.json', self.memory_module)  ##之前是../device.json也就是上一级目录, 但是他明明在同级目录下的   Nauhc
         self.memory_module = memory_module
         self.waiting_queue = []
         self.page_per_process = 3

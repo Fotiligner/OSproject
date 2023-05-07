@@ -6,13 +6,14 @@ import time
 import random
 
 class IO_Module:
-    def __init__(self, device_filename):  # 初始化当前设备并放入设备队列中
+    def __init__(self, device_filename, memory_module):  # 初始化当前设备并放入设备队列中
         self.device_table = {}   # 设备表, key是设备名，value是device类
 
         self.file_table = {}   # 文件表（之后考虑转移到文件模块中）， r表示有进程在读，w表示有进程在写（单次只有一个可以写，可以有多个读）
         self.disk_request_list = []   # 磁盘请求队列
 
         self.init_device(device_filename)
+        self.memory_module = memory_module
 
     def add_request(self, **args):
         print(args)
@@ -84,8 +85,13 @@ class IO_Module:
         # 考虑非running的request更新
         for request in self.disk_request_list:
             if request.is_running == 0:
+                # 这里的读写我们实现的是共享内存的情况，也即只考虑单个文件不能再同一时刻被写和读
+                # 问内存当前文件是否在内存中 search file
+                # 没有就调用falloc
+                # 要清除 fwrite(file_name, address, digit)
                 if request.file_path in self.file_table.keys() and (self.file_table[request.file_path] == 'r' \
                                                                     or self.file_table[request.file_path] == '0'):  # 已经存在且处于读状态
+
                     self.file_table[request.file_path] = request.rw_state
                     request.is_running = 1
                 elif request.file_path not in self.file_table.keys():
