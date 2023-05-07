@@ -7,6 +7,7 @@ import UI.Process_Module_UI as Process_Module_UI
 from UI.Main_Module_UI import MainTab, EmittingStr
 from UI.IO_Module_UI import IO_Tab
 from UI.memo_Module_UI import MemoTab
+from UI.File_Module_UI import FileTab
 from Controller import Controller
 
 from UI.main_test import Ui_MainWindow
@@ -33,6 +34,8 @@ class Main_Board(QMainWindow, Ui_MainWindow):
         self.tab_3 = IO_Tab(os_controller.process_module.io_module)
         # 内存界面
         self.tab_4 = MemoTab(os_controller.memory_module)
+        # 文件界面
+        self.tab_file = FileTab(os_controller.file_module)
 
         self.setupUi(self)
         self.tabWidget.setGeometry(QtCore.QRect(20, 40, 1161, 800))

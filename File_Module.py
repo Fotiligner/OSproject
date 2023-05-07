@@ -364,7 +364,7 @@ class File_Module:
         if algo == "FCFS":
             ret_list=index_list
         elif algo == "SSTF":
-            sort_list=index_list.sort(key=lambda x: x[0])
+            sort_list=index_list[1:].sort(key=lambda x: x[0])
 
         elif algo == "SCAN":
             ret_list.extend(disk_locs)
