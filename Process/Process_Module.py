@@ -219,6 +219,13 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 # 注意，不可以在io中断的时候更新pc，不然这里就会直接释放进程，顺序问题一定要搞清楚
                 # io遍历和io进程的问题
 
+                # 检测键盘输入
+                if self.io_module.keyboard_event:
+                    self.io_module.keyboard_event = False
+                    print("keyboard内容是" + self.io_module.keyboard_input_content)
+                    self.io_interrupt("keyboard")
+
+
                 device_output = self.io_module.IO_run()
                 # print(device_output)
                 if len(device_output) > 0:
@@ -277,10 +284,18 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
 
     def io_interrupt(self, type):
         print("产生" + type + "中断")
-        self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "waiting"   # 更改PCB状态
-        self.waiting_queue.append(self.running_pid)   # 更改waiting队列状态
-        self.set_end(self.running_pid, current_time)  # 更新结束时间
-        self.running_pid = -1   # 将当前的running 进程取消状态，便于之后scheduler
+        pid = self.running_pid
+        if self.running_pid != -1:  # 考虑keyboard这种外界输入
+            self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "waiting"   # 更改PCB状态
+            self.waiting_queue.append(self.running_pid)   # 更改waiting队列状态
+            self.set_end(self.running_pid, current_time)  # 更新结束时间
+            self.running_pid = -1   # 将当前的running 进程取消状态，便于之后scheduler
+
+        # keyboard这种外界输入中断在同一秒结束waiting
+        if type == "keyboard" and pid != -1:  # 键盘触发且非空转状态
+            self.pcb_pool[self.loc_pid_inPool(pid)].status = "ready"
+            self.ready_queue.append(pid)  # 完成io的程序从waiting到ready
+            self.waiting_queue.remove(pid)
     def command_running(self, command,running_pid):
         if command[0] == "cpu":   # 普通cpu时间，理论上只可能是cpu 1
             time = int(command[1])

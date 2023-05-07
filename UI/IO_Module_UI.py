@@ -9,6 +9,8 @@ from PyQt5.QtWidgets import QPushButton
 
 from UI.IOui import Ui_QWidget
 
+from PyQt5.QtCore import pyqtSignal,QObject
+
 # 用于根据时钟实时显示IO状态
 import threading
 from threading import Event, Thread, current_thread
@@ -26,6 +28,64 @@ class IO_Tab(Ui_QWidget, threading.Thread):
         self.colcount = 4  # 列数
 
         self.pushButton_2.clicked.connect(self.update_device_count)
+        self.pushButton_3.clicked.connect(self.send_keyboard_input)
+
+        # 中断输出表tab4初始化
+        self.tableWidget_4.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.tableWidget_4.setRowCount(0)
+        self.tableWidget_4.setColumnCount(self.colcount)
+        self.tableWidget_4.setHorizontalHeaderLabels(['中断类型', 'pid', '设备/文件', '中断总时长'])
+
+        # IO中断，缺页中断和keyboard外在中断
+        self.io_module.signal.connect(self.tab_interrupt)
+
+    def tab_interrupt(self, request):
+        line = self.tableWidget_4.rowCount()
+        self.tableWidget_4.setRowCount(line + 1)
+
+        if request.rw_state == 'r':
+            type = "读中断"
+        elif request.rw_state == 'w':
+            type = "写中断"
+        elif request.rw_state == 'p':
+            type = "缺页中断"
+        elif request.is_disk == False:
+            type = "设备IO中断"
+        newItem = QTableWidgetItem(type)
+        self.tableWidget_4.setItem(line, 0, newItem)
+
+        newItem = QTableWidgetItem(str(request.source_pid))
+        self.tableWidget_4.setItem(line, 1, newItem)
+
+        if request.is_disk:
+            content = request.file_path
+        else:
+            content = request.target_device
+
+        newItem = QTableWidgetItem(content)
+        self.tableWidget_4.setItem(line, 2, newItem)
+
+        newItem = QTableWidgetItem(str(request.IO_time))
+        self.tableWidget_4.setItem(line, 3, newItem)
+    def send_keyboard_input(self):
+        self.io_module.keyboard_input_content = self.textEdit.toPlainText()
+        self.io_module.keyboard_event = True
+
+        line = self.tableWidget_4.rowCount()
+        self.tableWidget_4.setRowCount(line + 1)
+
+        type = "设备IO中断"
+        newItem = QTableWidgetItem(type)
+        self.tableWidget_4.setItem(line, 0, newItem)
+
+        newItem = QTableWidgetItem("外部中断")
+        self.tableWidget_4.setItem(line, 1, newItem)
+
+        newItem = QTableWidgetItem("keyboard")
+        self.tableWidget_4.setItem(line, 2, newItem)
+
+        newItem = QTableWidgetItem("1")
+        self.tableWidget_4.setItem(line, 3, newItem)
 
     def run(self):   # 线程函数
         target = True  # 进程时钟控制辅助指标
@@ -59,7 +119,7 @@ class IO_Tab(Ui_QWidget, threading.Thread):
         #print(device_count)
         self.tableWidget.setRowCount(device_count[0])
         self.tableWidget_2.setRowCount(device_count[1])
-        self.tableWidget_3.setRowCount(1)
+        self.tableWidget_3.setRowCount(0)
 
         self.tableWidget.setColumnCount(self.colcount)
         self.tableWidget_2.setColumnCount(self.colcount)
@@ -67,13 +127,28 @@ class IO_Tab(Ui_QWidget, threading.Thread):
 
         self.tableWidget.setHorizontalHeaderLabels(['设备名', 'pid', 'IO内容', '已执行时间'])
         self.tableWidget_2.setHorizontalHeaderLabels(['设备名', 'pid', 'IO内容', '已执行时间'])
-        self.tableWidget_3.setHorizontalHeaderLabels(['文件名', 'pid', '磁盘读写信息', '已执行时间'])
+        self.tableWidget_3.setHorizontalHeaderLabels(['文件名', 'pid', '磁盘读写状态', '已执行时间'])
 
         self.table_info(self.tableWidget, self.device_name[0])
         self.table_info(self.tableWidget_2, self.device_name[1])
-        #self.table_info(self.tableWidget_3, "disk")
+        self.table_info(self.tableWidget_3, "disk")
 
     def line_info_device(self, device_name, pid, content, time, line, table):
+        newItem = QTableWidgetItem(device_name)
+        table.setItem(line, 0, newItem)
+
+        newItem = QTableWidgetItem(pid)
+        table.setItem(line, 1, newItem)
+
+        newItem = QTableWidgetItem(content)
+        table.setItem(line, 2, newItem)
+
+        newItem = QTableWidgetItem(time)
+        table.setItem(line, 3, newItem)
+
+    def line_info_disk(self, device_name, pid, content, time, table):
+        line = table.rowCount()
+        table.setRowCount(line + 1)
         newItem = QTableWidgetItem(device_name)
         table.setItem(line, 0, newItem)
 
@@ -98,10 +173,25 @@ class IO_Tab(Ui_QWidget, threading.Thread):
                         if request.target_device_count == i:
                             content1 = str(request.source_pid)
                             content2 = request.content
-                            content3 = str(request.IO_time - request.already_time)
+                            content3 = str(request.already_time)
                 self.line_info_device(device_name + str(i), content1, content2, content3, i, tablewidget)
-        elif device_name == "Disk":
-            pass
+        elif device_name == "disk":
+            disk_info = self.io_module.disk_request_list
+            for i, request in enumerate(disk_info):
+                # '文件名', 'pid', '磁盘读写状态', '已执行时间'
+                if request.is_finish == 0 and request.is_terminate == 0:  # 对于所有非中止的内容都进行打印
+                    content1 = request.file_path
+                    content2 = str(request.source_pid)
+                    if request.rw_state == 'r':
+                        content3 = "读"
+                    elif request.rw_state == 'w':
+                        content3 = "写"
+                    elif request.rw_state == 'p':
+                        content3 = "缺页调入"
+
+                    content4 = str(request.already_time)
+                    self.line_info_disk(content1, content2, content3, content4, tablewidget)
+
 
 
     def update_device_count(self):  # 自定义当前设备数量
@@ -116,7 +206,6 @@ class IO_Tab(Ui_QWidget, threading.Thread):
         if not is_changeable:
             reply = QMessageBox.information(self, "Error", "There are some requests waiting",  QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         else:
-            print("hello")
             count = self.spinBox.value()
             device_name = self.comboBox.currentText()
 

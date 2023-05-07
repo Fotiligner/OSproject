@@ -5,8 +5,31 @@ from threading import Event, Thread, current_thread
 import time
 import random
 
-class IO_Module:
+from PyQt5.QtCore import pyqtSignal,QObject
+
+class Request:
+    def __init__(self, args):
+        self.source_pid = args["source_pid"]
+        self.target_device = args["target_device"]
+        self.target_device_count = -1   # 用于表示当前是否有设备接受该请求的工作，若没有则
+        self.IO_time = args["IO_time"]
+        self.already_time = 0
+        self.content = args["content"]       # 存储设备IO传输的数据内容
+        self.is_finish = 0   # 0表示未完成，1表示完成
+        self.is_terminate = 0  # 0表示进程未中止，1表示中止
+        self.priority_num = args["priority_num"]  # 默认优先级（暂时不设置）
+
+        self.is_disk = args["is_disk"]
+        self.file_path = args["file_path"]
+        self.is_running = 0   # 0表示读写IO为阻塞状态，1表示读写IO为非阻塞状态（正常运行）
+        self.rw_state = args["rw_state"]   # 'r' or 'w'
+        self.write_address = args["address"]
+
+class IO_Module(QObject):
+    # 中断输出显示信号量,需设置为类属性
+    signal = pyqtSignal(Request)
     def __init__(self, device_filename, memory_module):  # 初始化当前设备并放入设备队列中
+        super().__init__()
         self.device_table = {}   # 设备表, key是设备名，value是device类
 
         self.file_table = {}   # 文件表（之后考虑转移到文件模块中）， r表示有进程在读，w表示有进程在写（单次只有一个可以写，可以有多个读）
@@ -15,9 +38,13 @@ class IO_Module:
         self.init_device(device_filename)
         self.memory_module = memory_module
 
+        self.keyboard_event = False
+        self.keyboard_input_content = None
+
     def add_request(self, **args):
         print(args)
         request = Request(args)
+        self.signal.emit(request)
 
         # 后期考虑死锁
         # 分配当前空闲的第一台设备
@@ -192,29 +219,6 @@ class Device:
         self.device_count = device_count
         self.request_queue = []   # 存放进程针对对应设备的request
         self.is_busy = []   # 01列表
-
-
-class Request:
-    def __init__(self, args):
-        self.source_pid = args["source_pid"]
-        self.target_device = args["target_device"]
-        self.target_device_count = -1   # 用于表示当前是否有设备接受该请求的工作，若没有则
-        self.IO_time = args["IO_time"]
-        self.already_time = 0
-        self.content = args["content"]       # 存储设备IO传输的数据内容
-        self.is_finish = 0   # 0表示未完成，1表示完成
-        self.is_terminate = 0  # 0表示进程未中止，1表示中止
-        self.priority_num = args["priority_num"]  # 默认优先级（暂时不设置）
-
-        self.is_disk = args["is_disk"]
-        self.file_path = args["file_path"]
-        self.is_running = 0   # 0表示读写IO为阻塞状态，1表示读写IO为非阻塞状态（正常运行）
-        self.rw_state = args["rw_state"]   # 'r' or 'w'
-        self.write_address = args["address"]
-
-
-
-
 
 if __name__== "__main__" :
     IO = IO_Module('device.json')
