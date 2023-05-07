@@ -26,6 +26,11 @@ class IO_Tab(Ui_QWidget, threading.Thread):
         self.colcount = 4  # 列数
 
         self.pushButton_2.clicked.connect(self.update_device_count)
+        self.pushButton_3.clicked.connect(self.send_keyboard_input)
+
+    def send_keyboard_input(self):
+        self.io_module.keyboard_input_content = self.textEdit.toPlainText()
+        self.io_module.keyboard_event = True
 
     def run(self):   # 线程函数
         target = True  # 进程时钟控制辅助指标

@@ -15,6 +15,9 @@ class IO_Module:
         self.init_device(device_filename)
         self.memory_module = memory_module
 
+        self.keyboard_event = False
+        self.keyboard_input_content = None
+
     def add_request(self, **args):
         print(args)
         request = Request(args)
