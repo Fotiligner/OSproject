@@ -13,9 +13,15 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
 import UI.UI_utils
 
-## 行表示进程, 列表示
-a = [[0 for j in range(1)] for i in range(1)]
+## 行表示进程, 列表示时间
+ganttTable = [[0 for j in range(1)] for i in range(1)]
 
+
+table = [#       cpu利用率   外设平均利用率    总时间    平均等待时间    平均周转时间   当前算法模式下的CPU工作时间   当前总的等待时间
+    ["先到先服务", 0,         0,             0,       0,            0,           0,                      0],
+    ["时间片轮转", 0,         0,             0,       0,            0,           0,                      0],
+    ["抢占式优先级",0, 0, 0, 0, 0, 0, 0],
+]
 
 
 class currentStatusLabel(QLabel):
@@ -86,18 +92,42 @@ class currentStatusLabel(QLabel):
             current_running = self.process_module.running_pid
             if(current_running==-1):
                 current_running=0
-            if(len(a)<current_running+1):
-                new_row = [0] * len(a[0])
-                a.append(new_row)
-            if(len(a[0])<=time):
-                a[current_running].append(1)
-                for i in range(len(a)):
+            if(len(ganttTable)<current_running+1):
+                new_row = [0] * len(ganttTable[0])
+                ganttTable.append(new_row)
+            if(len(ganttTable[0])<=time):
+                ganttTable[current_running].append(1)
+                for i in range(len(ganttTable)):
                     if i != current_running:
-                        a[i].append(0)
+                        ganttTable[i].append(0)
 
-            #print("此时的行数="+str(len(a))+"此时的列数"+str(len(a[0])) )
-            #print(a)
-            #print("此时运行的进程"+str(current_running))
+                #对于table的状态更新
+                if(self.process_module.schedule_type=="FCFS"):
+                    table[0][3]+=1
+                    if(self.process_module.running_pid != -1):
+                        table[0][6] += 1
+                    table[0][1]=table[0][6] * 100 /table[0][3]  #计算CPU利用率
+                    table[0][7]+=len(self.process_module.ready_queue)
+                    table[0][4] = table[0][7] / len(ganttTable)
+
+                elif(self.process_module.schedule_type=="RR"):
+                    table[1][3] += 1
+                    if(self.process_module.running_pid != -1):
+                        table[1][6] += 1
+                    table[1][1]=table[1][6] * 100 /table[1][3]  #计算CPU利用率
+                    table[1][7]+=len(self.process_module.ready_queue)
+                    table[1][4] = table[1][7] / len(ganttTable)
+
+                elif(self.process_module.schedule_type=="Preempting"):
+                    table[2][3] += 1
+                    if(self.process_module.running_pid != -1):
+                        table[2][6] += 1
+                    table[2][1]=table[2][6] * 100 /table[2][3]  #计算CPU利用率
+                    table[2][7]+=len(self.process_module.ready_queue)
+                    table[2][4] = table[2][7] / len(ganttTable)
+
+
+
         except Exception as ex:
             print("出现如下异常%s" % ex)
 
@@ -195,10 +225,10 @@ class ganttLabel(QLabel):
         self.timer.timeout.connect(self.updateGrid)
         self.timer.start(1000)
 
-        for i in range(len(a)):
-            for j in range(len(a[0])):
+        for i in range(len(ganttTable)):
+            for j in range(len(ganttTable[0])):
                 cell = QLabel()
-                if a[i][j] == 0:
+                if ganttTable[i][j] == 0:
                     cell.setStyleSheet("background-color: white")
                 else:
                     cell.setStyleSheet("background-color: gray")
@@ -232,10 +262,10 @@ class ganttLabel(QLabel):
 
 
 
-        for i in range(len(a)):
-            for j in range(len(a[0])):
+        for i in range(len(ganttTable)):
+            for j in range(len(ganttTable[0])):
                 cell = QLabel()
-                if a[i][j] == 0:
+                if ganttTable[i][j] == 0:
                     cell.setStyleSheet("background-color: white")
                 else:
                     cell.setStyleSheet("background-color: gray")
@@ -246,7 +276,7 @@ class ganttLabel(QLabel):
                     label.setAlignment(Qt.AlignCenter)
                     self.grid.addWidget(label, 0, j + 1)
 
-        for j in range(len(a)+1):
+        for j in range(len(ganttTable) + 1):
             if j == 0:
                 continue
             label = QLabel(str(j - 1))
@@ -302,16 +332,10 @@ class createProcessLabel(QLabel):
 class SchedulerLabel(QLabel):
     def __init__(self, text):
         super().__init__()
-        self.table = QTableWidget(3, 6)  # 创建一个 5 行 6 列的表格
+        self.table = QTableWidget(3, 6)
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.table)
         self.setLayout(self.layout)
-        table = [
-            ["先到先服务", 0, 0, 0, 0, 0],
-            ["时间片轮转", 0, 0, 0, 0, 0],
-            ["抢占式优先级", 0, 0, 0, 0, 0],
-        ]
-        # 随机填充字符串
         for row in range(self.table.rowCount()):
             for col in range(self.table.columnCount()):
                 item = QTableWidgetItem(str(table[row][col]))
@@ -325,6 +349,17 @@ class SchedulerLabel(QLabel):
             self.table.setHorizontalHeaderItem(i, item)
 
         self.setFixedSize(800, 250)
+
+        # 设置定时器，每隔一秒刷新表格内容
+        timer = QTimer(self)
+        timer.timeout.connect(self.update_table)
+        timer.start(1000)
+
+    def update_table(self):
+        for row in range(self.table.rowCount()):
+            for col in range(self.table.columnCount()):
+                item = QTableWidgetItem(str(table[row][col]))
+                self.table.setItem(row, col, item)
 
 ### 属于进程系统的TAB
 class ProcessTab(QWidget):
