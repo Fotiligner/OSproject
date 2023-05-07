@@ -33,8 +33,9 @@ class FileSignal(QObject):
 class Main_Board(QMainWindow, Ui_MainWindow):
     def __init__(self, os_controller):
         super(Main_Board, self).__init__()
-        self.file_signal=FileSignal()
-        self.tab = MainTab(os_controller.file_module, os_controller.process_module, self.file_signal)  # 所有原件需要在setup前初始化
+        self.file_signal = FileSignal()
+        self.tab = MainTab(os_controller.file_module, os_controller.process_module,
+                           self.file_signal)  # 所有原件需要在setup前初始化
         self.tab_2 = Process_Module_UI.ProcessTab(os_controller.process_module)
 
         # IO界面初始化,并将设备管理信息回传至
@@ -42,7 +43,7 @@ class Main_Board(QMainWindow, Ui_MainWindow):
         # 内存界面
         self.tab_4 = MemoTab(os_controller.memory_module)
         # 文件界面
-        self.tab_file = FileTab(os_controller.file_module,self.file_signal)
+        self.tab_file = FileTab(os_controller.file_module, self.file_signal)
 
         self.setupUi(self)
         self.tabWidget.setGeometry(QtCore.QRect(20, 40, 1161, 800))

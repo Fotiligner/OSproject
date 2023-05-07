@@ -40,8 +40,8 @@ class PageTable:  # 页表
 
 
 class Frame:    # 一个内存块
-    def __init__(self, page_size=50, content=None, is_allocated=-1, pid=-1):
-        self.is_allocated = is_allocated    # 该块是否分配,1表示普通文件，2表示进程文件
+    def __init__(self, page_size=60, content=None, is_allocated=-1, pid=-1):
+        self.is_allocated = is_allocated    # 该块是否分配,1表示普通文件，2表示进程文件， -1是没分配
         self.pid = pid                      # 获得该块的进程pid
         self.filename = None
         self.content = content              # 块的内容
@@ -74,10 +74,10 @@ class Frame:    # 一个内存块
 
 
 class MemoryManager:
-    def __init__(self,file_module,  page_size=50, command_size=10, physical_page=50, schedule="FIFO"):
+    def __init__(self,file_module,  page_size=60, command_size=10, physical_page=50, schedule="FIFO"):
 
         self.physical_memory = [Frame() for i in range(physical_page)]  # 物理内存
-        self.ps = page_size                                             # 一页（块）的容量
+        self.ps = page_size                                               # 一页（块）的容量
         self.cs = command_size                                          # 一条指令的长度
         self.pn = physical_page                                         # 物理内存块数
         self.page_tables = {}                                           # 所有进程的页表
