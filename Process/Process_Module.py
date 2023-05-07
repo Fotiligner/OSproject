@@ -125,6 +125,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
     # def init_process_module(self):
 
     def create_process(self, file_name, priority):
+        print("create_process:"+str(file_name))
         if file_name.split('.')[1] == "exe": # 判断是否为可执行文件
             # 注意，创建进程的时候，是使用生产者消费者模型的，这里要调用内存模块的接口
             # 需要内存返回首地址,内存模块负责将file_name 传递给文件模块，然后回传
@@ -148,6 +149,28 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 elif(type == "old"):
                     self.pcb_pool[self.loc_pid_inPool(self.current_pid)].update(self.current_pid, parent_pid=-1, \
                                              child_pid=-1, priority=priority, start_time=current_time, \
+                                             page_allocated=alloc_output,file_name=file_name) #pc_end=1 , content = "cpu 2;cpu 3")
+                    self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
+            else: # 内存分配不成功
+                if alloc_output == -2:
+                    print("error" + " the file does not exist")
+                elif alloc_output == -1:
+                    print("error" + " not enough room for pages of this process")
+        elif file_name.split('.')[1] == "e": # 判断是否为可执行文件
+            type, self.current_pid = self.getCurrentpid()  # 从success里调到外，可能有bug
+
+            alloc_output = self.memory_module.alloc(self.current_pid, self.page_per_process, file_name)
+            # 文件总页数， 指令行数， 返回值（错误码）
+
+            if alloc_output >= 0: # 内存分配成功
+                if(type == "new"): #如果是个新PCB,也就是老PCB都没有终止
+                    self.pcb_pool.append(PCB(self.current_pid, parent_pid=-1, \
+                                             child_pid=-1, priority=2, start_time=current_time, \
+                                             page_allocated=alloc_output,file_name= file_name))  #pc_end=2 , content = "cpu 2;output printer asdfasdf 3;cpu 3"))   # 暂时
+                    self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
+                elif(type == "old"):
+                    self.pcb_pool[self.loc_pid_inPool(self.current_pid)].update(self.current_pid, parent_pid=-1, \
+                                             child_pid=-1, priority=2, start_time=current_time, \
                                              page_allocated=alloc_output,file_name=file_name) #pc_end=1 , content = "cpu 2;cpu 3")
                     self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
             else: # 内存分配不成功
