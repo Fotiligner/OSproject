@@ -258,12 +258,8 @@ class ganttLabel(QLabel):
                 item.widget().deleteLater()
             self.grid.removeItem(item)
 
-
-
-
-
         for i in range(len(ganttTable)):
-            for j in range(len(ganttTable[0])):
+            for j in range(max(0,len(ganttTable[0])-50),len(ganttTable[0])):
                 cell = QLabel()
                 if ganttTable[i][j] == 0:
                     cell.setStyleSheet("background-color: white")
