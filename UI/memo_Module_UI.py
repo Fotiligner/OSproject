@@ -94,19 +94,18 @@ class MemoTab(QWidget):
         #第二行
         row3_layout = QHBoxLayout()
         label5 = currentStatusLabel(self.memo_module)
-        print(label5.text())
-        #self.tableWidget_2 = QTableWidget()
-        row3_layout.addWidget(label5)
-        #row3_layout.addWidget(self.tableWidget_2)
+        self.tableWidget_2 = QTableWidget(self)
+        row3_layout.addWidget(label5,1)
+        row3_layout.addWidget(self.tableWidget_2,2)
 
-        # UI.UI_utils.addLine(row3_layout, "V")
+        UI.UI_utils.addLine(row3_layout, "V")
         label6 = SchedulerLabel(self.memo_module)
-        row3_layout.addWidget(label6)
+        row3_layout.addWidget(label6,3)
         layout.addLayout(row2_layout)
         UI.UI_utils.addLine(layout, "H")
         layout.addLayout(row3_layout)
-        layout.setStretch(0,0)
-        layout.setStretch(1,2)
+        # layout.setStretch(0,1)
+        # layout.setStretch(1,0)
         self.setLayout(layout)
 
         ## 设置定时器
