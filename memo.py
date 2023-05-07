@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import copy
+from PyQt5.QtCore import pyqtSignal,QObject
 
 
 class Virtual_Page:    # 一个虚页
@@ -73,9 +74,11 @@ class Frame:    # 一个内存块
             print("WRITE WRONG !!!!") # 返回错误码
 
 
-class MemoryManager:
+class MemoryManager(QObject):
+    # 内存信号量，用来指示存储进程访存信息
+    signal = pyqtSignal(str)
     def __init__(self,file_module,  page_size=60, command_size=10, physical_page=50, schedule="FIFO"):
-
+        super().__init__()
         self.physical_memory = [Frame() for i in range(physical_page)]  # 物理内存
         self.ps = page_size                                               # 一页（块）的容量
         self.cs = command_size                                          # 一条指令的长度
@@ -159,6 +162,7 @@ class MemoryManager:
                 self.physical_memory[b].clr()
                 self.allocated=self.allocated-1
 
+        self.signal.emit("hello")
         ptable.table.clear()
         self.page_tables.pop(pid)
         if status == 0:
