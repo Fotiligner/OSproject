@@ -75,7 +75,19 @@ class IO_Module:
         # running状态信息更新
         for request in self.disk_request_list:
             if request.is_running == 1:  # 正在运行
-                if request.is_finish == 0 and request.is_terminate == 0:
+                if request.is_finish == 0 and request.is_terminate == 0 and request.rw_state == "p": # 缺页中断处理
+                    request.already_time += 1
+
+                    if request.already_time == request.IO_time:
+                        request.is_finish = 1
+                        dict = {}
+                        dict['pid'] = request.source_pid
+                        dict['file_path'] = request.file_path
+                        dict['rw_state'] = request.rw_state
+                        output.append(dict)
+                    continue
+
+                if request.is_finish == 0 and request.is_terminate == 0 and request.rw_state != "p":
                     request.already_time += 1
 
                     if request.already_time == request.IO_time:       # 完成了IO操作，显示相应的信息，并且回传给进程模块

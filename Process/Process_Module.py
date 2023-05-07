@@ -194,15 +194,27 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 if(self.running_pid != -1):
                     ## 向内存中要一段代码的位置 传递过去pid和程序计数器pc  返回一个字符串  需要提前定义好一行指令的大小
                     ## 下面这行代码会放入内存取地址的内容
-                    command = self.memory_module.page_PC(self.running_pid, self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc).split()
+                    command = self.memory_module.page_PC(self.running_pid, self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)
+                    if command == -1:
+                        # 防止结尾的中断指令被识别为进程结束，中断的pc+1在回传的时候完成
+                        # self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1  # 指令行数增加，指向下一条指令
+
+                        self.io_module.add_request(source_pid=self.running_pid, target_device=None, \
+                                                   IO_time=1, content=None, priority_num=1, is_disk=True, \
+                                                   file_path=self.pcb_pool[self.loc_pid_inPool(self.running_pid)].file_name, \
+                                                   rw_state='p',address=None)
+                        self.io_interrupt("page_fault")
+                        # 缺页中断
+                    else:
+                        command = command.split()
+                        print(command)
+                        self.command_running(command, self.running_pid)
 
                     # 这里需要判断是否缺页，缺页则直接中断，放入waiting_list中，同时在一个周期之后从waiting调入ready状态，其实当前时刻内存是已经将缺的页数放入了
                     # 如何确定fork无限不停止的问题？
                     # fork维持当前的pc指针？创建新的程序进入内存？执行fork指令之后所有的新指令
 
-                    print(command)
                     # command = self.pcb_pool[self.loc_pid_inPool(self.running_pid)].command_queue[self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc]   # 从内存中获得的file 4.2 暂时修改了下
-                    self.command_running(command,self.running_pid)
 
                 # 注意，不可以在io中断的时候更新pc，不然这里就会直接释放进程，顺序问题一定要搞清楚
                 # io遍历和io进程的问题
@@ -227,7 +239,8 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 for return_dict in disk_output:
                     print("在" + str(current_time) + "时刻" + "进程" + str(
                         self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pid) + "完成磁盘IO")
-                    self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc = self.add_pc(self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc)
+                    if return_dict['rw_state'] != 'p': # 若不是缺页中断才能pc + 1
+                        self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc = self.add_pc(self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc)
                     self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].status = "ready"
                     self.ready_queue.append(return_dict['pid'])  # 完成io的程序从waiting到ready
                     self.waiting_queue.remove(return_dict['pid'])
@@ -307,6 +320,12 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
 
             if address_content == -2: # 地址出错
                 print('\033[1;31m' + "访问的地址越界！" + '\033[0m')
+            elif address_content == -1: # 缺页中断
+                self.io_module.add_request(source_pid=self.running_pid, target_device=None, \
+                                           IO_time=1, content=None, priority_num=1, is_disk=True, \
+                                           file_path=self.pcb_pool[self.loc_pid_inPool(self.running_pid)].file_name, \
+                                           rw_state='p', address=None)
+                self.io_interrupt("page_fault")
             else:
                 print("访问的地址内容为：" + address_content)
             self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc = self.add_pc(
