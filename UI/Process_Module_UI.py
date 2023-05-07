@@ -1,9 +1,10 @@
-
+import random
+import string
 from PyQt5.Qt import Qt
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, QEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QGraphicsView, \
     QGraphicsScene, QGraphicsItem, QGraphicsProxyWidget, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
-    QPushButton, QHBoxLayout, QScrollArea, QSizePolicy, QLineEdit,QScrollBar,QGridLayout
+    QPushButton, QHBoxLayout, QScrollArea, QSizePolicy, QLineEdit,QScrollBar,QGridLayout,QMessageBox,QTableWidget,QTableWidgetItem
 
 import Process.Process_Module
 
@@ -126,11 +127,27 @@ class readyQueueLabel(QLabel):
         num_buttons = len(ready_queue)
         for i in range(num_buttons):
             btn = QPushButton("进程 {}".format(ready_queue[i]))
+            btn.clicked.connect(lambda _, pid=ready_queue[i]: self.confirm_slot(pid))
             self.layout.addWidget(btn)
 
+    def confirm_slot(self, pid):
+        try:
+            reply = QMessageBox.question(self, '提示', f'是否杀死进程 {pid}？',
+                                         QMessageBox.Yes | QMessageBox.No,
+                                         QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                # 执行 kill 进程的操作
+                self.process_module.kill_process(pid)
 
+                # 发送一个事件
+                event = QEvent(QEvent.User)
+                QApplication.postEvent(self, event)
+            else:
+                # 取消操作
+                pass
 
-
+        except Exception as ex:
+            print("出现如下异常%s" % ex)
 ### 等待队列的Label
 class waitingQueueLabel(QLabel):
     def __init__(self, process_module):
@@ -159,18 +176,16 @@ class waitingQueueLabel(QLabel):
         for i in range(num_buttons):
             btn = QPushButton("进程 {}".format(waiting_queue[i]))
             self.layout.addWidget(btn)
-
-
-### 预留给甘特图的地方
-class Label4(QLabel):
+### 甘特图的Label
+class ganttLabel(QLabel):
     def __init__(self, text):
         super().__init__()
         self.setText(text)
         scrollArea = QScrollArea(self)
         scrollArea.setWidgetResizable(True)
         scrollArea.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        scrollArea.setMinimumSize(1000, 250)
-        scrollArea.setMaximumSize(1000, 250)
+        scrollArea.setMinimumSize(1127, 250)
+        scrollArea.setMaximumSize(1127, 250)
         self.grid = QGridLayout()
         gridWidget = QWidget()
         gridWidget.setLayout(self.grid)
@@ -237,58 +252,80 @@ class Label4(QLabel):
             label = QLabel(str(j - 1))
             label.setAlignment(Qt.AlignCenter)
             self.grid.addWidget(label, j, 0)
-
-
-### 创建新进程的Laebl
+        scrollArea = self.findChild(QScrollArea)
+        scrollArea.horizontalScrollBar().setValue(scrollArea.horizontalScrollBar().maximum())
+### 显示当前进程状态的Label
 class createProcessLabel(QLabel):
     def __init__(self, process_module):
         super().__init__()
-        layout = QVBoxLayout()
-        self.textbox1 = QLineEdit()
-        self.textbox1.setPlaceholderText("uid")
-        self.textbox2 = QLineEdit()
-        self.textbox3 = QLineEdit()
-        layout.addWidget(self.textbox1)
-        layout.addWidget(self.textbox2)
-        layout.addWidget(self.textbox3)
-        self.button = QPushButton("创建进程")
-        layout.addWidget(self.button)
-        self.button.clicked.connect(self.outputTextboxes)
-        widget = QWidget()
-        widget.setLayout(layout)
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setWidget(widget)
-        widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        widget.setMaximumSize(300,200)
-        self.setLayout(QVBoxLayout())
-        self.setFixedSize(300, 200)
-        self.layout().addWidget(scroll_area)
+        super().__init__()
+        ### 获取进程模块
+        self.process_module = process_module
 
-    def outputTextboxes(self):
-        print(self.textbox1.text())
-        print(self.textbox2.text())
-        print(self.textbox3.text())
+        ## 设置定时器
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.updateText)
+        self.timer.start(100)
+
+        layout = QVBoxLayout()
+        ### 上面的文字部分
+
+        self.text_label = QLabel("当前执行进程")
+        self.text_label.setAlignment(Qt.AlignCenter)
+        self.text_label1 = QLabel("当前时刻")
+        self.text_label1.setAlignment(Qt.AlignCenter)
+        self.text_label2 = QLabel("当前使用的调度算法")
+        self.text_label2.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.text_label1)
+        layout.addWidget(self.text_label)
+        layout.addWidget(self.text_label2)
+
+        self.setLayout(layout)
+    def updateText(self):
+        # 获取值
+        try:
+            if(self.process_module.running_pid!=0):
+                PCB = self.process_module.pcb_pool[self.process_module.loc_pid_inPool(self.process_module.running_pid)]
+                # 更新当前StatusLabel的文本属性
+                self.text_label1.setText(f"当前pc:{PCB.pc}")
+                self.text_label.setText(f"当前进程pid: {PCB.pid}")
+                self.text_label2.setText(f"当前进程启动时间:{PCB.start_time}")
+            else:
+                self.text_label1.setText(f"初始进程")
+                self.text_label.setText(f"初始进程")
+                self.text_label2.setText(f"初始进程")
+        except Exception as ex:
+            self.text_label1.setText(f"初始进程")
+            self.text_label.setText(f"初始进程")
+            self.text_label2.setText(f"初始进程")
+
 class SchedulerLabel(QLabel):
     def __init__(self, text):
         super().__init__()
-        layout = QVBoxLayout()
-        self.text_label = QLabel(text)
-        self.text_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.text_label)
-        self.button1 = QPushButton("FCFS")
-        self.button2 = QPushButton("抢占优先级")
-        self.button3 = QPushButton("时间片轮转")
-        layout.addWidget(self.button1)
-        layout.addWidget(self.button2)
-        layout.addWidget(self.button3)
-        self.button1.clicked.connect(lambda: self.setTextFromButton(self.button1))
-        self.button2.clicked.connect(lambda: self.setTextFromButton(self.button2))
-        self.button3.clicked.connect(lambda: self.setTextFromButton(self.button3))
-        self.setLayout(layout)
+        self.table = QTableWidget(3, 6)  # 创建一个 5 行 6 列的表格
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.table)
+        self.setLayout(self.layout)
+        table = [
+            ["先到先服务", 0, 0, 0, 0, 0],
+            ["时间片轮转", 0, 0, 0, 0, 0],
+            ["抢占式优先级", 0, 0, 0, 0, 0],
+        ]
+        # 随机填充字符串
+        for row in range(self.table.rowCount()):
+            for col in range(self.table.columnCount()):
+                item = QTableWidgetItem(str(table[row][col]))
+                self.table.setItem(row, col, item)
 
-    def setTextFromButton(self, button):
-        self.text_label.setText(button.text())
+        # 设置表头
+        header_list = ["算法名称", "CPU平均利用率", "外设平均利用率", "总时间",
+                       "平均等待时间", "平均周转时间"]
+        for i, header in enumerate(header_list):
+            item = QTableWidgetItem(header)
+            self.table.setHorizontalHeaderItem(i, item)
+
+        self.setFixedSize(800, 250)
+
 ### 属于进程系统的TAB
 class ProcessTab(QWidget):
     def __init__(self, process_module):
@@ -310,7 +347,7 @@ class ProcessTab(QWidget):
 
         #第二行
         row2_layout = QHBoxLayout()
-        label4 = Label4("甘特图")
+        label4 = ganttLabel("甘特图")
         row2_layout.addWidget(label4)
 
         #第三行
