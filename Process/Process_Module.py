@@ -119,6 +119,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
         self.command_per_page = 5
 
         self.chd_pid = 0
+        self.kill = False
 
 
     # def init_process_module(self):
@@ -273,6 +274,9 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 #     print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行结束")
                 #     self.pcb_pool[self.loc_pid_inPool(self.running_pid)].final_time = current_time
                 #     self.process_over()     # 释放进程部分的指令
+                if(self.kill==True):
+                    self.kill = False
+                    self.kill_current_process()
 
             elif not e.is_set():           # 进入中断
                 e.wait()  # 正在阻塞状态,当event变为True时就激活
@@ -427,6 +431,13 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
 
         print("在" + str(current_time) + "时刻" + "进程" + str(pid) + "被杀死")
 
+    def kill_process_safe(self,pid):
+        if self.running_pid == pid:   # 在running kill的时候直接停止当前的running_pid
+            self.kill=True
+        else:
+            self.kill_process(pid)
+    def kill_current_process(self):
+        self.kill_process(self.running_pid)
     def gantt_graph(self):
         plt.figure(figsize=(20, 14), dpi=100)     ## 定义一个图像窗口
         plt.title("Facos进程运行甘特图", fontsize=30)   ## 标题  后面的fontsize字体大小

@@ -258,12 +258,8 @@ class ganttLabel(QLabel):
                 item.widget().deleteLater()
             self.grid.removeItem(item)
 
-
-
-
-
         for i in range(len(ganttTable)):
-            for j in range(len(ganttTable[0])):
+            for j in range(max(0,len(ganttTable[0])-50),len(ganttTable[0])):
                 cell = QLabel()
                 if ganttTable[i][j] == 0:
                     cell.setStyleSheet("background-color: white")
@@ -310,7 +306,19 @@ class createProcessLabel(QLabel):
         layout.addWidget(self.text_label)
         layout.addWidget(self.text_label2)
 
+        self.buttonKill = QPushButton("kill当前进程")
+        layout.addWidget(self.buttonKill)
+        self.buttonKill.clicked.connect(lambda: self.killProcess())
         self.setLayout(layout)
+
+    def killProcess(self):
+        if(self.process_module.running_pid!=-1):
+            try:
+                self.process_module.kill_process_safe(self.process_module.running_pid)
+            except Exception as ex:
+                print("出现如下异常%s" % ex)
+
+
     def updateText(self):
         # 获取值
         try:
