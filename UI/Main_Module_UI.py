@@ -1,7 +1,7 @@
 import sys, os
 from PyQt5.Qt import Qt
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtCore import QRegExp
+from PyQt5.QtCore import QRegExp, QObject, pyqtSignal
 from PyQt5.QtGui import QPainter, QIcon, QCursor, QPixmap, QIntValidator, QRegExpValidator
 
 # 测试designer创建界面
@@ -38,6 +38,7 @@ class EmittingStr(QtCore.QObject):
         cursor.insertText(text)
         self.textBrowser.setTextCursor(cursor)
         self.textBrowser.ensureCursorVisible()
+
 
 
 class FileNode(QGraphicsPixmapItem):
@@ -130,21 +131,16 @@ class MyView(QGraphicsView):  # 视图创建 为grid提供场景
                 y += box_size + 15
 
     def mouseDoubleClickEvent(self, event):
-        print("double clicked on scene")
         pos = event.pos()
         item = self.itemAt(pos)
         if isinstance(item, FileNode):
-            print("find node")
             if item.node_type == 'd':
                 self.file_module.cd(item.node_name)
-                print(item.node_name)
+                self.file_signal.modified.emit()
             elif item.node_type == 'f':
                 self.ui_vi(item.node_name)
-                print(item.node_name)
-            self.ui_ls()
 
     def ui_vi(self, file_name):
-        print("vi start")
         file_node = self.file_module.get_fcb(file_name)
         text_edit = QTextEdit()
         btn_cancel = QPushButton("取消")
@@ -160,20 +156,19 @@ class MyView(QGraphicsView):  # 视图创建 为grid提供场景
 
     def text_edit_cancel(self):
         del_layout(self.layout)
-        print("cancel done")
 
     def text_edit_save_exit(self, text_edit, file_node):
         text = text_edit.toPlainText()
         self.file_module.write_file(file_node, text)
         self.file_module.write_dir_tree()
         del_layout(self.layout)
-        print("savexit done")
 
 
 # 主页, 文件系统的tab
 class MainTab(QWidget):
-    def __init__(self, file_module, process_module):
+    def __init__(self, file_module, process_module,file_signal):
         super().__init__()
+        self.file_signal=file_signal
         self.scene = GridScene()
         self.file_module = file_module
         self.process_module = process_module
@@ -181,14 +176,20 @@ class MainTab(QWidget):
         layout = QVBoxLayout(self)
         layout.addWidget(self.view)
         self.setLayout(layout)
+        self.file_signal.modified.connect(self.handleFileSignalEmit)
 
         # 声明在groupBox创建右键菜单
         self.view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.view.customContextMenuRequested.connect(self.create_right_menu)  # 连接到菜单显示函数
-        self.view.ui_ls()
+
+        # self.view.ui_ls()
+        self.file_signal.modified.emit()
 
         # 临时创建，为了让主界面可以调用
         self.action_cmd = QAction(QIcon('./UI/image/cmd.png'), u'控制台', self)
+
+    def handleFileSignalEmit(self):
+        self.view.ui_ls()
 
     # 创建右键菜单函数
     def create_right_menu(self):
@@ -266,8 +267,7 @@ class MainTab(QWidget):
                 self.view.file_module.rm(i.node_name, '-r')
             elif i.node_type == 'f':
                 self.view.file_module.rm(i.node_name)
-        self.view.ui_ls()
-
+        self.file_signal.modified.emit()
     def ui_run(self, selected_items):
         is_executable = True
         for i in selected_items:
@@ -294,25 +294,25 @@ class MainTab(QWidget):
             self.file_size_edit = None
             self.setWindowTitle(u'新建文件')
 
-            self.grid=QGridLayout()
+            self.grid = QGridLayout()
             self.grid.setContentsMargins(100, 30, 200, 30)
             self.grid.setSpacing(50)  # 设置间距
-            self.grid.addWidget(QLabel(u'文件名'),0,0,1,2)
-            self.file_name_edit=QLineEdit(parent=self)
-            reg = QRegExp("[^ \\/:*?\"<>|]*")# 设置文本不允许出现的字符内容
-            pValidator = QRegExpValidator(self)# 自定义文本验证器
-            pValidator.setRegExp(reg)# 设置属性
+            self.grid.addWidget(QLabel(u'文件名'), 0, 0, 1, 2)
+            self.file_name_edit = QLineEdit(parent=self)
+            reg = QRegExp("[^ \\/:*?\"<>|]*")  # 设置文本不允许出现的字符内容
+            pValidator = QRegExpValidator(self)  # 自定义文本验证器
+            pValidator.setRegExp(reg)  # 设置属性
             self.file_name_edit.setValidator(pValidator)
-            self.grid.addWidget(self.file_name_edit,0,1,1,2)
+            self.grid.addWidget(self.file_name_edit, 0, 1, 1, 2)
 
-            btn_box=QDialogButtonBox(Qt.Horizontal,self)
-            btn_box_plus=QPushButton(u'高级',self)
-            btn_box.addButton(btn_box_plus,QDialogButtonBox.ActionRole)
-            btn_box_ok=QPushButton(u'确定',self)
+            btn_box = QDialogButtonBox(Qt.Horizontal, self)
+            btn_box_plus = QPushButton(u'高级', self)
+            btn_box.addButton(btn_box_plus, QDialogButtonBox.ActionRole)
+            btn_box_ok = QPushButton(u'确定', self)
             btn_box.addButton(btn_box_ok, QDialogButtonBox.AcceptRole)
-            btn_box_cancel=QPushButton(u'取消',self)
-            btn_box.addButton(btn_box_cancel,QDialogButtonBox.RejectRole)
-            self.grid.addWidget(btn_box,1,0,1,2)
+            btn_box_cancel = QPushButton(u'取消', self)
+            btn_box.addButton(btn_box_cancel, QDialogButtonBox.RejectRole)
+            self.grid.addWidget(btn_box, 1, 0, 1, 2)
 
             btn_box.accepted.connect(self.accept)
             btn_box.rejected.connect(self.reject)
@@ -326,71 +326,64 @@ class MainTab(QWidget):
             self.grid.setContentsMargins(100, 30, 200, 30)
             self.grid.setSpacing(50)  # 设置间距
 
-            self.grid.addWidget(QLabel(u'文件名'),0,0,3,2)
-            self.file_name_edit=QLineEdit(parent=self)
+            self.grid.addWidget(QLabel(u'文件名'), 0, 0, 3, 2)
+            self.file_name_edit = QLineEdit(parent=self)
             reg = QRegExp("[^ \\/:*?\"<>|]*")
             pValidator = QRegExpValidator(self)
             pValidator.setRegExp(reg)
             self.file_name_edit.setValidator(pValidator)
-            self.grid.addWidget(self.file_name_edit,0,1,3,2)
+            self.grid.addWidget(self.file_name_edit, 0, 1, 3, 2)
 
-            self.grid.addWidget(QLabel(u'文件大小'),1,0,3,2)
-            self.file_size_edit=QLineEdit(parent=self)
+            self.grid.addWidget(QLabel(u'文件大小'), 1, 0, 3, 2)
+            self.file_size_edit = QLineEdit(parent=self)
             reg = QRegExp("[0-9]*")
-            pValidator = QRegExpValidator(self)# 自定义文本验证器
-            pValidator.setRegExp(reg)# 设置属性
+            pValidator = QRegExpValidator(self)  # 自定义文本验证器
+            pValidator.setRegExp(reg)  # 设置属性
             self.file_size_edit.setValidator(pValidator)
             self.grid.addWidget(self.file_size_edit, 1, 1, 3, 2)
 
             self.grid.addWidget(QLabel(u'分配方式'), 2, 0, 3, 2)
-            self.select_btn_def=QRadioButton(u'默认',parent=self)
-            self.grid.addWidget(self.select_btn_def,2,1,3,2)
-            self.select_btn_ran=QRadioButton(u'随机', parent=self)
+            self.select_btn_def = QRadioButton(u'默认', parent=self)
+            self.grid.addWidget(self.select_btn_def, 2, 1, 3, 2)
+            self.select_btn_ran = QRadioButton(u'随机', parent=self)
             self.grid.addWidget(self.select_btn_ran, 2, 2, 3, 2)
             self.select_btn_def.setChecked(True)
 
-
-            btn_box=QDialogButtonBox(Qt.Horizontal,self)
-            btn_box_ok=QPushButton(u'确定',self)
+            btn_box = QDialogButtonBox(Qt.Horizontal, self)
+            btn_box_ok = QPushButton(u'确定', self)
             btn_box.addButton(btn_box_ok, QDialogButtonBox.AcceptRole)
-            btn_box_cancel=QPushButton(u'取消',self)
-            btn_box.addButton(btn_box_cancel,QDialogButtonBox.RejectRole)
-            self.grid.addWidget(btn_box,3,0,3,2)
+            btn_box_cancel = QPushButton(u'取消', self)
+            btn_box.addButton(btn_box_cancel, QDialogButtonBox.RejectRole)
+            self.grid.addWidget(btn_box, 3, 0, 3, 2)
 
             btn_box.accepted.connect(self.accept)
             btn_box.rejected.connect(self.reject)
 
-
     def ui_touch(self):
-        # name, ok = QInputDialog.getText(self, '新建文件', '输入文件名')
-        # if ok and name:
-        #     self.view.file_module.touch(name)
-        #     self.view.ui_ls()
-        touch_dialog=self._TouchDialog()
+        touch_dialog = self._TouchDialog()
         if touch_dialog.exec_():
-            file_name=touch_dialog.file_name_edit.text()
+            file_name = touch_dialog.file_name_edit.text()
             if touch_dialog.file_size_edit:
-                file_size=int(touch_dialog.file_size_edit.text())
-                alloc_method="default"
+                file_size = int(touch_dialog.file_size_edit.text())
+                alloc_method = "default"
                 if touch_dialog.select_btn_ran.isChecked():
-                    alloc_method="random"
-                print("file_size:%d alloc_method:%s" %(file_size ,alloc_method))
-                self.view.file_module.touch(name=file_name,size=file_size,alloc_method=alloc_method)
+                    alloc_method = "random"
+                print("file_size:%d alloc_method:%s" % (file_size, alloc_method))
+                self.view.file_module.touch(name=file_name, size=file_size, alloc_method=alloc_method)
             else:
                 self.view.file_module.touch(name=file_name)
-            self.view.ui_ls()
-
+            self.file_signal.modified.emit()
 
 
     def ui_mkdir(self):
         name, ok = QInputDialog.getText(self, '新建目录', '输入目录名')
         if ok and name:
             self.view.file_module.mkdir(name)
-            self.view.ui_ls()
+            self.file_signal.modified.emit()
 
     def ui_back(self):
         self.view.file_module.cd("..")
-        self.view.ui_ls()
+        self.file_signal.modified.emit()
 
 
 class MyMainWindow(QMainWindow):

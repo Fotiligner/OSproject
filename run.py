@@ -2,7 +2,7 @@ import sys, os
 from PyQt5.Qt import Qt
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtGui import QPainter, QIcon, QCursor, QPixmap
-from PyQt5.QtCore import QEventLoop, QTimer
+from PyQt5.QtCore import QEventLoop, QTimer, QObject, pyqtSignal
 import UI.Process_Module_UI as Process_Module_UI
 from UI.Main_Module_UI import MainTab, EmittingStr
 from UI.IO_Module_UI import IO_Tab
@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBo
     QGraphicsScene, QGraphicsItem, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
     QPushButton
 
+
 class EmittingStr(QtCore.QObject):
     textWritten = QtCore.pyqtSignal(str)  # 定义一个发送str的信号
 
@@ -24,10 +25,16 @@ class EmittingStr(QtCore.QObject):
         QTimer.singleShot(100, loop.quit)
         loop.exec_()
 
+
+class FileSignal(QObject):
+    modified = pyqtSignal()
+
+
 class Main_Board(QMainWindow, Ui_MainWindow):
     def __init__(self, os_controller):
         super(Main_Board, self).__init__()
-        self.tab = MainTab(os_controller.file_module, os_controller.process_module)   # 所有原件需要在setup前初始化
+        self.file_signal=FileSignal()
+        self.tab = MainTab(os_controller.file_module, os_controller.process_module, self.file_signal)  # 所有原件需要在setup前初始化
         self.tab_2 = Process_Module_UI.ProcessTab(os_controller.process_module)
 
         # IO界面初始化,并将设备管理信息回传至
@@ -35,7 +42,7 @@ class Main_Board(QMainWindow, Ui_MainWindow):
         # 内存界面
         self.tab_4 = MemoTab(os_controller.memory_module)
         # 文件界面
-        self.tab_file = FileTab(os_controller.file_module)
+        self.tab_file = FileTab(os_controller.file_module,self.file_signal)
 
         self.setupUi(self)
         self.tabWidget.setGeometry(QtCore.QRect(20, 40, 1161, 800))
@@ -62,7 +69,6 @@ class Main_Board(QMainWindow, Ui_MainWindow):
             self.tab_visible = False
             self.textBrowser.setVisible(False)
             self.tabWidget.setGeometry(QtCore.QRect(20, 40, 1161, 800))
-
 
     def outputWritten(self, text):
         cursor = self.textBrowser.textCursor()

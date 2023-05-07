@@ -8,7 +8,6 @@ from enum import Enum
 
 disk_path = os.path.abspath(r".") + "\\MYDISK"
 
-
 class Ret_State(Enum):
     Success = 0
     Error_File_Exist = 1
@@ -142,19 +141,15 @@ class Disk:
         """
         addr = []
         if alloc_method=="default":
-            print("self.bitmap:%s"%self.bitmap[:5])
             bitmap = list(self.bitmap)
-            print("bitmap:%s"%bitmap[:5])
             for i in range(self.data_blk_num):
                 if bitmap[i] == '0':
                     addr.append(i)
-                    print("i:%d"%i)
                     if len(addr) >= num:
                         break
             if len(addr) >= num:
                 for i in range(len(addr)):
                     bitmap[addr[i]] = '1'
-                    print("bitmap:%s"%bitmap[:5])
                     self.bitmap = ''.join(bitmap)
                     self.write_super_blk()
             else:
