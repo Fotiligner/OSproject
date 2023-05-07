@@ -326,7 +326,7 @@ class createProcessLabel(QLabel):
                 PCB = self.process_module.pcb_pool[self.process_module.loc_pid_inPool(self.process_module.running_pid)]
                 # 更新当前StatusLabel的文本属性
                 self.text_label1.setText(f"当前pc:{PCB.pc}")
-                self.text_label.setText(f"当前进程pid: {PCB.pid}")
+                self.text_label.setText(f"当前进程优先度: {PCB.priority}")
                 self.text_label2.setText(f"当前进程启动时间:{PCB.start_time}")
             else:
                 self.text_label1.setText(f"初始进程")

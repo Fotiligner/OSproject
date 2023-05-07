@@ -273,7 +273,7 @@ class MainTab(QWidget):
         is_executable = True
         for i in selected_items:
             print(i.node_name)
-            if len(i.node_name) < 4 or (len(i.node_name) >= 4 and i.node_name[-4:] != ".exe"):
+            if len(i.node_name) < 4 or (len(i.node_name) >= 4 and not(i.node_name[-4:] == ".exe" or i.node_name[-2:] == ".e")):
                 is_executable = False
                 break
 
