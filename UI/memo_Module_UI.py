@@ -5,9 +5,13 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBo
     QGraphicsScene, QGraphicsItem, QGraphicsProxyWidget, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
     QPushButton, QHBoxLayout, QScrollArea, QSizePolicy, QLineEdit,QScrollBar
 import Process.Process_Module
+import PyQt5.QtWidgets as QtWidgets
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QTableWidget, QAbstractItemView, \
+    QTableWidgetItem, QPushButton, QScrollArea
 import UI.UI_utils
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
+from PyQt5.QtGui import QIcon, QPainter, QBrush, QPixmap, QStandardItemModel, QStandardItem, QColor, QFont
 
 ### 预留给晗哥的位置
 class Label4(QLabel):
@@ -52,8 +56,6 @@ class SchedulerLabel(QLabel):
         super().__init__()
         self.memory_module = memory_module
 
-
-
         layout = QVBoxLayout()
         self.text_label = QLabel("选择调页算法")
         self.text_label.setAlignment(Qt.AlignCenter)
@@ -80,22 +82,79 @@ class MemoTab(QWidget):
     def __init__(self, memo_module):
         super().__init__()
         self.memo_module = memo_module
-
         layout = QVBoxLayout()
-
         #第一行
         row2_layout = QHBoxLayout()
-        label4 = Label4("晗哥的图的位置")
-        row2_layout.addWidget(label4)
+        label = Label4("内存显示图")
+        self.tableWidget = QTableWidget()
+        self.tableWidget.setFixedSize(1000, 300)
+        row2_layout.addWidget(label)
+        row2_layout.addWidget(self.tableWidget)
 
         #第二行
         row3_layout = QHBoxLayout()
         label5 = currentStatusLabel(self.memo_module)
+        print(label5.text())
+        #self.tableWidget_2 = QTableWidget()
         row3_layout.addWidget(label5)
-        UI.UI_utils.addLine(row3_layout, "V")
+        #row3_layout.addWidget(self.tableWidget_2)
+
+        # UI.UI_utils.addLine(row3_layout, "V")
         label6 = SchedulerLabel(self.memo_module)
         row3_layout.addWidget(label6)
         layout.addLayout(row2_layout)
         UI.UI_utils.addLine(layout, "H")
         layout.addLayout(row3_layout)
+        layout.setStretch(0,0)
+        layout.setStretch(1,2)
         self.setLayout(layout)
+
+        ## 设置定时器
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_memory_tab)
+        self.timer.start(100)
+
+        self.update_memory_tab()
+
+    def update_memory_tab(self):  # 内存状态图显示
+        self.tableWidget.clear()
+
+        self.tableWidget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.tableWidget.setRowCount(5)
+        self.tableWidget.setColumnCount(10)
+
+        self.tableWidget.horizontalHeader().hide()
+        self.tableWidget.verticalHeader().hide()
+
+        for i in range(5):
+            self.tableWidget.setRowHeight(i, 55)
+
+        for i in range(10):
+            self.tableWidget.setColumnWidth(i, 95)
+
+        for i in range(self.memo_module.pn):
+            row = i // 10
+            col = i % 10
+            page_info = self.memo_module.physical_memory[i]
+            if page_info.is_allocated == -1:
+                newItem = QTableWidgetItem()
+                self.tableWidget.setItem(row, col, newItem)
+
+
+            elif page_info.is_allocated == 1:   # 普通文件
+                newItem = QTableWidgetItem(page_info.filename)
+                newItem.setBackground(QBrush(QColor(190, 88, 0)))
+                self.tableWidget.setItem(row, col, newItem)
+
+            else:   # 进程文件
+                newItem = QTableWidgetItem("pid=" + str(page_info.pid))
+                newItem.setBackground(QBrush(QColor(0, 120, 255)))
+                self.tableWidget.setItem(row, col, newItem)
+
+
+
+
+
+
+
+
