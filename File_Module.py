@@ -157,7 +157,8 @@ class Disk:
         elif alloc_method == "random":
             list_index=[i.start() for i in re.finditer('0',self.bitmap)]
             addr=random.sample(list_index,num)
-        print("addr:"+str(addr))
+            for i in addr:
+                self.write_block(i + self.data_base, ' '*self.blk_size)
         return addr
 
 
@@ -169,9 +170,12 @@ class Dir:
 
 
 class FCB:
-    def __init__(self, name, disk_loc, size, auth):
+    def __init__(self, name, disk_loc, size, auth,blk_num=None):
         self.size = size  # 文件大小，以字符为单位，不包括结束符'\0'
-        self.blk_num = int((size + 1) / Disk.blk_size) + 1
+        if blk_num:
+            self.blk_num=blk_num
+        else:
+            self.blk_num = int((size + 1) / Disk.blk_size) + 1
         self.name = name
         self.auth = auth
         self.disk_loc = disk_loc
@@ -224,7 +228,7 @@ class File_Module:
                     blk_num = int(nodes[index + 3])
                     for i in range(blk_num):
                         disk_loc.append(int(nodes[index + 4 + i]))
-                    new_fcb = FCB(name, disk_loc, size, auth)
+                    new_fcb = FCB(name, disk_loc, size, auth,blk_num)
                     new_fcb.parent = now_dir
                     now_dir.childs.append(new_fcb)
                     index = index + 3 + blk_num
@@ -329,15 +333,16 @@ class File_Module:
         :return: 返回文件内容，字符串类型。
         """
         buf = [""for i in range(fcb.blk_num)]
-        if algo == "FCFS":
-            for i in range(fcb.blk_num):
-                buf[i] =  self.disk.read_block(self.disk.data_base + fcb.disk_loc[i])
-                if buf[i].find('\0') != -1:
-                    buf[i] = buf[i][: buf[i].find('\0') + 1]
-                    break
-            buf=''.join(buf)
-        elif algo == "":
-            pass
+        ret_list=self.head_seek(fcb.disk_loc,algo,137)
+        for ret in ret_list:
+            if ret[1]== -1:
+                continue
+            str_temp=self.disk.read_block(self.disk.data_base+ret[0])
+            buf[ret[1]]=str_temp
+            if str_temp.find('\0') != -1:
+                str_temp = str_temp[: str_temp.find('\0') + 1]
+                buf[ret[1]]=str_temp
+        buf=''.join(buf)
         return buf[:-1]  # 去除末尾的结尾符
 
     def head_seek(self,disk_locs,algo,init_loc):
@@ -347,7 +352,9 @@ class File_Module:
         :param algo:磁头寻道算法
         :return: 不同算法返回的队列
         """
-        index_list = ret_list=[]
+        # 谨记python中list是可变元素
+        index_list = []
+        ret_list=[]
         if init_loc in disk_locs:
             init_index=disk_locs.index(init_loc)
             index_list.append([init_loc,init_index])
@@ -359,8 +366,19 @@ class File_Module:
         if algo == "FCFS":
             ret_list=index_list
         elif algo == "SSTF":
-            sort_list=index_list[1:].sort(key=lambda x: x[0])
-
+            ret_list.append(index_list[0])
+            index_list=index_list[1:]
+            last_loc=ret_list[0][0]
+            while len(index_list)>0:
+                min_dis=abs(index_list[0][0]-last_loc)
+                min_index=index_list[0]
+                for i in index_list[1:]:
+                    if abs(i[0]-last_loc)<min_dis:
+                        min_dis=abs(i[0]-last_loc)
+                        min_index=i
+                ret_list.append(min_index)
+                last_loc=min_index[0]
+                index_list.remove(min_index)
         elif algo == "SCAN":
             ret_list.extend(disk_locs)
             ret_list=ret_list.sort()

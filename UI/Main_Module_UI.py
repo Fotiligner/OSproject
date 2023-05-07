@@ -92,12 +92,13 @@ def del_layout(layout):
 
 
 class MyView(QGraphicsView):  # 视图创建 为grid提供场景
-    def __init__(self, scene, file_module, parent=None):
+    def __init__(self, scene, file_module, file_signal,parent=None):
         super().__init__(parent)
 
         self.parent = parent
         self.scene = scene
         self.file_module = file_module
+        self.file_signal = file_signal
         self.layout = QVBoxLayout()
 
         self.init_ui()
@@ -162,6 +163,7 @@ class MyView(QGraphicsView):  # 视图创建 为grid提供场景
         self.file_module.write_file(file_node, text)
         self.file_module.write_dir_tree()
         del_layout(self.layout)
+        self.file_signal.modified.emit()
 
 
 # 主页, 文件系统的tab
@@ -172,7 +174,7 @@ class MainTab(QWidget):
         self.scene = GridScene()
         self.file_module = file_module
         self.process_module = process_module
-        self.view = MyView(self.scene, self.file_module)  # view搭配scene
+        self.view = MyView(self.scene, self.file_module,self.file_signal)  # view搭配scene
         layout = QVBoxLayout(self)
         layout.addWidget(self.view)
         self.setLayout(layout)
@@ -182,8 +184,7 @@ class MainTab(QWidget):
         self.view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.view.customContextMenuRequested.connect(self.create_right_menu)  # 连接到菜单显示函数
 
-        # self.view.ui_ls()
-        self.file_signal.modified.emit()
+        self.view.ui_ls()
 
         # 临时创建，为了让主界面可以调用
         self.action_cmd = QAction(QIcon('./UI/image/cmd.png'), u'控制台', self)
