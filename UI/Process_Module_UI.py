@@ -3,7 +3,7 @@ from PyQt5.Qt import Qt
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QGraphicsView, \
     QGraphicsScene, QGraphicsItem, QGraphicsProxyWidget, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
-    QPushButton, QHBoxLayout, QScrollArea, QSizePolicy, QLineEdit,QScrollBar
+    QPushButton, QHBoxLayout, QScrollArea, QSizePolicy, QLineEdit,QScrollBar,QGridLayout
 
 import Process.Process_Module
 
@@ -11,7 +11,9 @@ import Process.Process_Module
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
 import UI.UI_utils
-# 用于添加分割线的函数
+
+## 行表示进程, 列表示
+a = [[0 for j in range(1)] for i in range(1)]
 
 
 
@@ -63,7 +65,6 @@ class currentStatusLabel(QLabel):
     def updateText(self):
         # 获取值
         time = Process.Process_Module.current_time
-        current_running = self.process_module.current_pid
 
         # 更新当前StatusLabel的文本属性
         self.text_label1.setText(f"当前时刻:{time}")
@@ -71,7 +72,33 @@ class currentStatusLabel(QLabel):
             self.text_label.setText(f"当前执行进程: {self.process_module.running_pid}")
         else:
             self.text_label.setText(f"当前执行进程: {0} (init进程)")
-        self.text_label2.setText(f"当前使用的调度算法:{self.process_module.schedule_type}")
+        if(self.process_module.schedule_type == "RR"):
+            self.text_label2.setText(f"当前使用的调度算法:{self.process_module.schedule_type}当前时间片大小:{self.process_module.time_slot}")
+        else:
+            self.text_label2.setText(f"当前使用的调度算法:{self.process_module.schedule_type}")
+
+        # 更新执行列表
+        self.updateTable()
+    def updateTable(self):
+        try:
+            time = Process.Process_Module.current_time
+            current_running = self.process_module.running_pid
+            if(current_running==-1):
+                current_running=0
+            if(len(a)<current_running+1):
+                new_row = [0] * len(a[0])
+                a.append(new_row)
+            if(len(a[0])<=time):
+                a[current_running].append(1)
+                for i in range(len(a)):
+                    if i != current_running:
+                        a[i].append(0)
+
+            #print("此时的行数="+str(len(a))+"此时的列数"+str(len(a[0])) )
+            #print(a)
+            #print("此时运行的进程"+str(current_running))
+        except Exception as ex:
+            print("出现如下异常%s" % ex)
 
 
 ### ready队列的Label
@@ -139,6 +166,79 @@ class Label4(QLabel):
     def __init__(self, text):
         super().__init__()
         self.setText(text)
+        scrollArea = QScrollArea(self)
+        scrollArea.setWidgetResizable(True)
+        scrollArea.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        scrollArea.setMinimumSize(1000, 250)
+        scrollArea.setMaximumSize(1000, 250)
+        self.grid = QGridLayout()
+        gridWidget = QWidget()
+        gridWidget.setLayout(self.grid)
+        scrollArea.setWidget(gridWidget)
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.updateGrid)
+        self.timer.start(1000)
+
+        for i in range(len(a)):
+            for j in range(len(a[0])):
+                cell = QLabel()
+                if a[i][j] == 0:
+                    cell.setStyleSheet("background-color: white")
+                else:
+                    cell.setStyleSheet("background-color: gray")
+                self.grid.addWidget(cell, i + 1, j + 1)
+                self.grid.setRowMinimumHeight(i + 1, 50)
+                self.grid.setColumnMinimumWidth(j + 1, 50)
+
+                if i == 0:
+                    label = QLabel(str(j))
+                    label.setAlignment(Qt.AlignCenter)
+                    self.grid.addWidget(label, 0, j + 1)
+
+                if j == 0:
+                    label = QLabel(str(i))
+                    label.setAlignment(Qt.AlignCenter)
+                    self.grid.addWidget(label, i + 1, 0)
+
+        self.setFixedSize(1200, 250)
+
+    def updateGrid(self):
+        # 清空现有网格内容
+
+        for i in reversed(range(self.grid.count())):
+            item = self.grid.itemAt(i)
+
+            if item.widget():
+                item.widget().deleteLater()
+            self.grid.removeItem(item)
+
+
+
+
+
+        for i in range(len(a)):
+            for j in range(len(a[0])):
+                cell = QLabel()
+                if a[i][j] == 0:
+                    cell.setStyleSheet("background-color: white")
+                else:
+                    cell.setStyleSheet("background-color: gray")
+                self.grid.addWidget(cell, i + 1, j + 1)
+
+                if i == 0:
+                    label = QLabel(str(j))
+                    label.setAlignment(Qt.AlignCenter)
+                    self.grid.addWidget(label, 0, j + 1)
+
+        for j in range(len(a)+1):
+            if j == 0:
+                continue
+            label = QLabel(str(j - 1))
+            label.setAlignment(Qt.AlignCenter)
+            self.grid.addWidget(label, j, 0)
+
+
 ### 创建新进程的Laebl
 class createProcessLabel(QLabel):
     def __init__(self, process_module):
