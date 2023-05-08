@@ -77,6 +77,10 @@ class Frame:    # 一个内存块
 class MemoryManager(QObject):
     # 内存信号量，用来指示存储进程访存信息
     signal = pyqtSignal(PageTable, int)
+
+    # 内存长期调度信号量，用来指示进程模块重新申请进程创建并完成长期调度
+    signal_2 = pyqtSignal(str, int)
+
     def __init__(self,file_module,  page_size=60, command_size=10, physical_page=50, schedule="FIFO"):
         super().__init__()
         self.physical_memory = [Frame() for i in range(physical_page)]  # 物理内存
@@ -92,7 +96,6 @@ class MemoryManager(QObject):
         self.physical_rate = 0                                          # 内存使用率记录
         self.filelist=[]                                                 # 未被满足的进程队列（文件名）
         self.sizelist=[]                                                # 未被满足的需求块数队列
-        self.filelist = []                                              # 未被满足的文件队列
         self.file_module = file_module                                  # 文件模块接口
 
 
@@ -116,7 +119,7 @@ class MemoryManager(QObject):
             print("UNFOUNDE FILE !!!!")  # 返回错误码
             return
         psize = len(disk_loc)
-        if psize < size:  # 分配的太多了
+        if psize < size:  # 分配的太多了,psize是进程虚拟内存空间，
             s = psize
         elif psize > 2 * size:  # 分配的太少了
             s = psize // 2 if psize < 30 else 15
@@ -142,6 +145,7 @@ class MemoryManager(QObject):
                 if self.physical_memory[i].is_allocated == -1:  # 该页未分配
                     self.physical_memory[i].pid = pid
                     self.physical_memory[i].is_allocated = 2
+                    # 下面原来是size，需要改成psize？
                     ptable.table[size - s].frame = i
                     ptable.table[size - s].valid = 1
                     ptable.table[size - s].entry = 1
@@ -172,11 +176,12 @@ class MemoryManager(QObject):
         self.page_tables.pop(pid)
         if status == 0:
             return False
-        if filelist:
+        if self.filelist:
             if self.allocated+sizelist[0]<self.pn:
                 #炳黔写信号量
-                filelist.pop(0)
-                sizelist.pop(0)
+                self.signal_2.emit(self.filelist[0], 1)
+                self.filelist.pop(0)
+                self.sizelist.pop(0)
         return True
 
     def access(self, pid, address):

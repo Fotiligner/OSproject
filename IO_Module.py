@@ -34,6 +34,7 @@ class IO_Module(QObject):
 
         self.file_table = {}   # 文件表（之后考虑转移到文件模块中）， r表示有进程在读，w表示有进程在写（单次只有一个可以写，可以有多个读）
         self.disk_request_list = []   # 磁盘请求队列
+        self.disk_waiting_list = []   # 磁盘等待队列
 
         self.init_device(device_filename)
         self.memory_module = memory_module
@@ -200,6 +201,20 @@ class IO_Module(QObject):
 
                     if request.target_device_count != -1: # 已经分配，则释放设备
                         device.is_busy[request.target_device_count] = 0  # 重新置为空闲
+
+        for request in self.disk_request_list:   # 回退文件表读写情况
+            if request.source_pid == pid:
+                request.is_terminate = 1
+
+                # 回退文件表中当前的rw状态信息
+                state = '0'
+                for temp in self.disk_request_list:
+                    if temp.is_finish == 0 and temp.is_terminate == 0 and temp.is_running == 1:
+                        state = temp.rw_state
+
+                self.file_table[request.file_path] = state
+
+
 
     def IO_run(self):   # 整体轮询遍历函数
         #self.disk_io_run()
