@@ -419,7 +419,8 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
             # -1
 
             if address_content == -2: # 地址出错
-                print('\033[1;31m' + "访问的地址越界！" + '\033[0m')
+                self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc = self.add_pc(
+                    self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)  # 指令行数增加，指向下一条指令
             elif address_content == -1: # 缺页中断
                 self.io_module.add_request(source_pid=self.running_pid, target_device=None, \
                                            IO_time=1, content=None, priority_num=1, is_disk=True, \
