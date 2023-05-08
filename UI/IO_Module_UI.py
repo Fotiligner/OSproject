@@ -149,7 +149,6 @@ class IO_Tab(Ui_QWidget, threading.Thread):
 
         for request in self.io_module.device_table["printer"].request_queue:
             if request.target_device_count == -1 and request.is_finish != 1 and request.is_terminate != 1:
-                print("enter")
                 printer_out += str(request.source_pid) + " "
 
         for request in self.io_module.device_table["screen"].request_queue:
@@ -160,8 +159,9 @@ class IO_Tab(Ui_QWidget, threading.Thread):
             if request.is_running == 0 and request.is_finish != 1 and request.is_terminate != 1:
                 disk_out += str(request.source_pid) + " "
 
-        print(printer_out)
         self.label1.setText(printer_out)
+        self.label2.setText(screen_out)
+        self.label3.setText(disk_out)
         #self.textEdit_2.setText("hello")
         # self.textBrowser_2.setText(screen_out)
         # print("hello2")
