@@ -105,6 +105,7 @@ class Disk:
                     row = [str(track_no)]
             if cflag == 'y':
                 print(table)
+                pass
 
     def write_super_blk(self):
         """
@@ -525,12 +526,12 @@ class File_Module:
         for c in self.work_dir.childs:
             if isinstance(c, Dir):
                 node = [c.name, "d"]
-                print('\033[34m' + c.name + '\033[0m', end=' ')
+                # print('\033[34m' + c.name + '\033[0m', end=' ')
             else:
                 node = [c.name, "f"]
-                print('\033[38m' + c.name + '\033[0m', end=' ')
+                # print('\033[38m' + c.name + '\033[0m', end=' ')
             ret_list.append(node)
-        print('')
+        # print('')
         return ret_list
 
     def vi(self, name):
