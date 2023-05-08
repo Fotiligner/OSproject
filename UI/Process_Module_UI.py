@@ -192,7 +192,6 @@ class waitingQueueLabel(QLabel):
         self.timer.timeout.connect(self.update_slots)
         self.timer.start(1000)
         self.setLayout(self.layout)
-
     def update_slots(self):
         for i in range(self.layout.count() - 1, -1, -1):
             widget = self.layout.itemAt(i).widget()
@@ -202,10 +201,28 @@ class waitingQueueLabel(QLabel):
         waiting_queue = self.process_module.waiting_queue
         num_buttons = len(waiting_queue)
 
-
         for i in range(num_buttons):
             btn = QPushButton("进程 {}".format(waiting_queue[i]))
+            btn.clicked.connect(lambda _, pid=waiting_queue[i]: self.confirm_slot(pid))
             self.layout.addWidget(btn)
+
+    def confirm_slot(self, pid):
+        try:
+            reply = QMessageBox.question(self, '提示', f'是否杀死进程 {pid}？',
+                                         QMessageBox.Yes | QMessageBox.No,
+                                         QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                # 执行 kill 进程的操作
+                self.process_module.kill_process(pid)
+
+                # 发送一个事件
+                event = QEvent(QEvent.User)
+                QApplication.postEvent(self, event)
+            else:
+                # 取消操作
+                pass
+        except Exception as ex:
+            print("出现如下异常%s" % ex)
 ### 甘特图的Label
 class ganttLabel(QLabel):
     def __init__(self, text):
