@@ -25,8 +25,9 @@ class Virtual_Page:    # 一个虚页
 
 class PageTable:  # 页表
     def __init__(self, max):
-
         self.table=[Virtual_Page() for i in range(max)]
+        self.access=0
+        self.fault=0
 
     def delete(self, page_num):  # 清空页表中一页
         self.table[page_num].clr()
@@ -85,10 +86,10 @@ class MemoryManager(QObject):
         self.pn = physical_page                                         # 物理内存块数
         self.page_tables = {}                                           # 所有进程的页表
         self.ftables = {}                                               # 所有文件的页表
-        self.schedule = schedule                                        # !!调页策略!!
-        self.allocated = 0                                              # !!这个/pn是缺页率!!物理内存已经被分配的块数
-        self.page_fault = 0                                             # !!缺页发生次数!!
-        self.page_access = 0                                            # !!页访问次数!!
+        self.schedule = schedule                                        # 调页策略
+        self.allocated = 0                                              # 这个/pn是缺页率物理内存已经被分配的块数
+        self.page_fault = 0                                             # 缺页中断发生次数
+        self.page_access = 0                                            # 页访问次数
         self.physical_rate = 0                                          # 内存使用率记录
         self.pidlist=[]                                                 # 未被满足的进程队列
         self.sizelist=[]                                                # 未被满足的需求块数队列
@@ -117,7 +118,6 @@ class MemoryManager(QObject):
             return -1
         else:
             self.allocated += size
-            self.page_fault += size
             file_fcb = self.file_module.get_fcb(filename)  # 文件接口
             if file_fcb:
                 disk_loc = file_fcb.disk_loc
@@ -174,11 +174,14 @@ class MemoryManager(QObject):
         page=10*int(address[0])+int(address[1])
         page_offset = 100*int(address[2])+10*int(address[3])+int(address[4])  # 页内偏移
         ptable = self.page_tables[pid]
+        ptable.access+=1
         block = ptable.transform(page)
         if block == -2:
             print("ERROR ADDRESS !!!!")
             return -2
         elif block ==-1:    #缺页中断
+            ptable.fault+=1
+            self.page_fault+=1
             if self.schedule == 'LRU':
                 block=self.LRU(ptable)
             elif self.schedule == 'FIFO':
@@ -197,17 +200,18 @@ class MemoryManager(QObject):
             return self.physical_memory[block].getonechar(page_offset)
 
     def page_PC(self, pid, address):
-        print("address")
-        print(address)
         self.page_access += 1
         page= int(address[:2])
         page_offset = 100*int(address[2])+10*int(address[3])+int(address[4])  # 页内偏移
         ptable = self.page_tables[pid]
+        ptable.access+=1
         block = ptable.transform(page)
         if block == -2:
             print("ERROR ADDRESS !!!!")
             return
         elif block ==-1:  #缺页中断
+            ptable.fault+=1
+            self.page_fault+=1
             if self.schedule == 'LRU':
                 block=self.LRU(ptable)
             elif self.schedule == 'FIFO':
