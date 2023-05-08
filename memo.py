@@ -137,9 +137,9 @@ class MemoryManager(QObject):
             if pid in self.page_tables.keys():  # 已经有页表
                 ptable = self.page_tables[pid]
             else:  # 创建页表
-                ptable = PageTable(psize)
+                ptable = PageTable(len(disk_loc))
                 self.page_tables[pid] = ptable
-            for i in range(psize):
+            for i in range(len(disk_loc)):
                 ptable.table[i].outaddress = disk_loc[i]
             for i in range(self.pn):
                 if self.physical_memory[i].is_allocated == -1:  # 该页未分配
