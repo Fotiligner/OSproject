@@ -428,8 +428,8 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 self.io_interrupt("page_fault")
             else:
                 print("访问的地址内容为：" + address_content)
-            self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc = self.add_pc(
-                self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)  # 指令行数增加，指向下一条指令
+                self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc = self.add_pc(
+                    self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)  # 指令行数增加，指向下一条指令
         elif command[0] == "fork":
 
             type, self.chd_pid = self.getCurrentpid()  # 从success里调到外，可能有bug
