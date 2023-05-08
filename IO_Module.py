@@ -58,16 +58,10 @@ class IO_Module(QObject):
 
             # 不管是否分配到设备，全部放入设备请求队列中
             self.device_table[request.target_device].request_queue.append(request)   # 在相应设备添加请求队列
-
         elif request.is_disk == 1:   # 磁盘IO请求
             self.disk_request_list.append(request)   # disk类request中，默认时间为1，若有传入读写时间则按读写时间来统计
             # 文件表就是有r，w和0三种状态，0就表示这个文件曾经出现过
             if request.is_running == 0:
-                # 这里的读写我们实现的是共享内存的情况，也即只考虑单个文件不能再同一时刻被写和读
-                # 对于写来说，我们不去和读进行组合，若要写的文件不再内存，则会自己触发一次调入IO
-                # 问内存当前文件是否在内存中 search file
-                # 没有就调用falloc
-                # 要清除 fwrite(file_name, address, digit)
                 if request.file_path in self.file_table.keys() and (self.file_table[request.file_path] == 'r' \
                                                                     or self.file_table[request.file_path] == '0'):  # 已经存在且处于读状态
                     if self.memory_module.search_file(request.file_path) == 1:
@@ -98,7 +92,6 @@ class IO_Module(QObject):
     def disk_io_run(self):
         # 磁盘IO轮询
         output = []
-
         # running状态信息更新
         for request in self.disk_request_list:
             if request.is_running == 1:  # 正在运行
@@ -116,7 +109,6 @@ class IO_Module(QObject):
 
                 if request.is_finish == 0 and request.is_terminate == 0 and request.rw_state != "p":
                     request.already_time += 1
-
                     if request.already_time == request.IO_time:       # 完成了IO操作，显示相应的信息，并且回传给进程模块
                         # 针对写指令，在完成时刻进行真正的内容写入工作
                         if request.rw_state == "w":

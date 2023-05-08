@@ -44,7 +44,8 @@ class currentStatusLabel(QLabel):
         ##获取对应值
         Number_of_missing_pages=self.memory_module.page_fault
         Number_of_calls = self.memory_module.page_access
-        Memory_usage = self.memory_module.physical_rate
+        print(self.memory_module.allocated)
+        Memory_usage = "{:.2%}".format(self.memory_module.allocated / self.memory_module.pn)
         self.text_label1.setText(f"缺页次数:{Number_of_missing_pages}")
         self.text_label.setText(f"访存次数: {Number_of_calls}")
         self.text_label2.setText(f"内存使用率:{Memory_usage}")
@@ -96,11 +97,11 @@ class MemoTab(QWidget):
         label5 = currentStatusLabel(self.memo_module)
         self.tableWidget_2 = QTableWidget(self)
         row3_layout.addWidget(label5,2)
-        row3_layout.addWidget(self.tableWidget_2,4)
+        row3_layout.addWidget(self.tableWidget_2,6)
 
         UI.UI_utils.addLine(row3_layout, "V")
         label6 = SchedulerLabel(self.memo_module)
-        row3_layout.addWidget(label6,4)
+        row3_layout.addWidget(label6,2)
         layout.addLayout(row2_layout)
         UI.UI_utils.addLine(layout, "H")
         layout.addLayout(row3_layout)
@@ -124,29 +125,21 @@ class MemoTab(QWidget):
         self.tableWidget_2.setHorizontalHeaderLabels(['进程程序名', '访存数', '缺页数', '调页算法'])
 
 
-    def update_memo_process_tab(self):   # 内存释放进程后将信息存入这张表中
-        print("hello1")
+    def update_memo_process_tab(self, page_table, pid):   # 内存释放进程后将信息存入这张表中
         line = self.tableWidget_2.rowCount()
         self.tableWidget_2.setRowCount(line + 1)
-        print("hello2")
 
-        newItem = QTableWidgetItem("device_name")
+        newItem = QTableWidgetItem("pid" + str(pid))
         self.tableWidget_2.setItem(line, 0, newItem)
 
-        newItem = QTableWidgetItem("pid")
+        newItem = QTableWidgetItem(str(page_table.access))
         self.tableWidget_2.setItem(line, 1, newItem)
 
-        newItem = QTableWidgetItem("content")
+        newItem = QTableWidgetItem(str(page_table.fault))
         self.tableWidget_2.setItem(line, 2, newItem)
 
-        newItem = QTableWidgetItem("time")
+        newItem = QTableWidgetItem(self.memo_module.schedule)
         self.tableWidget_2.setItem(line, 3, newItem)
-        print("hello3")
-
-
-
-
-
 
     def update_memory_tab(self):  # 内存状态图显示
         self.tableWidget.clear()
