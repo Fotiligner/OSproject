@@ -39,6 +39,11 @@ class IO_Tab(Ui_QWidget, threading.Thread):
         # IO中断，缺页中断和keyboard外在中断
         self.io_module.signal.connect(self.tab_interrupt)
 
+        # 开启时钟
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.waiting_update)
+        self.timer.start(100)
+
     def tab_interrupt(self, request):
         line = self.tableWidget_4.rowCount()
         self.tableWidget_4.setRowCount(line + 1)
@@ -97,11 +102,16 @@ class IO_Tab(Ui_QWidget, threading.Thread):
                 e.wait()  # 正在阻塞状态,当event变为True时就激活
                 target = True
 
+    def waiting_update(self):
+        pass
+
     def table_update(self):   # 更新三张表中的内容,是实时更新的
         # 界面不如弄成横过来的
         self.tableWidget.clear()
         self.tableWidget_2.clear()
         self.tableWidget_3.clear()
+
+        #self.textEdit_2.clear()
 
         #print(self.io_module.device_table["printer"].is_busy)
         device_count = []   # 设备数量，可自定义
@@ -132,6 +142,31 @@ class IO_Tab(Ui_QWidget, threading.Thread):
         self.table_info(self.tableWidget, self.device_name[0])
         self.table_info(self.tableWidget_2, self.device_name[1])
         self.table_info(self.tableWidget_3, "disk")
+
+        printer_out = ""
+        screen_out = ""
+        disk_out = ""
+
+        for request in self.io_module.device_table["printer"].request_queue:
+            if request.target_device_count == -1 and request.is_finish != 1 and request.is_terminate != 1:
+                print("enter")
+                printer_out += str(request.source_pid) + " "
+
+        for request in self.io_module.device_table["screen"].request_queue:
+            if request.target_device_count == -1 and request.is_finish != 1 and request.is_terminate != 1:
+                screen_out += str(request.source_pid) + " "
+
+        for request in self.io_module.disk_request_list:
+            if request.is_running == 0 and request.is_finish != 1 and request.is_terminate != 1:
+                disk_out += str(request.source_pid) + " "
+
+        print(printer_out)
+        self.label1.setText(printer_out)
+        #self.textEdit_2.setText("hello")
+        # self.textBrowser_2.setText(screen_out)
+        # print("hello2")
+        # self.textBrowser_3.setText(disk_out)
+        # print("hello2")
 
     def line_info_device(self, device_name, pid, content, time, line, table):
         newItem = QTableWidgetItem(device_name)

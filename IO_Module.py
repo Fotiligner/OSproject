@@ -34,8 +34,6 @@ class IO_Module(QObject):
 
         self.file_table = {}   # 文件表（之后考虑转移到文件模块中）， r表示有进程在读，w表示有进程在写（单次只有一个可以写，可以有多个读）
         self.disk_request_list = []   # 磁盘请求队列
-        self.disk_waiting_list = []   # 磁盘等待队列
-
         self.init_device(device_filename)
         self.memory_module = memory_module
 
