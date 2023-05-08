@@ -44,7 +44,6 @@ class currentStatusLabel(QLabel):
         ##获取对应值
         Number_of_missing_pages=self.memory_module.page_fault
         Number_of_calls = self.memory_module.page_access
-        print(self.memory_module.allocated)
         Memory_usage = "{:.2%}".format(self.memory_module.allocated / self.memory_module.pn)
         self.text_label1.setText(f"缺页次数:{Number_of_missing_pages}")
         self.text_label.setText(f"访存次数: {Number_of_calls}")
