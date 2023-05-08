@@ -11,7 +11,7 @@ class Virtual_Page:    # 一个虚页
         self.entry = entry    # 入序
         self.visit = visit    # 访问
         self.is_changed = -1
-        self.outaddress = None
+        self.outaddress = None  # 块号
 
     def clr(self):
         self.valid = -1    # 该页是否有效
@@ -19,7 +19,7 @@ class Virtual_Page:    # 一个虚页
         self.entry = -1     # 入序
         self.visit = -1     # 访问
         self.is_changed = -1    #修改位
-        self.outaddress = None  #块号
+        #self.outaddress = None
 
 
 
@@ -174,7 +174,7 @@ class MemoryManager(QObject):
         if status == 0:
             return False
         if self.filelist:
-            if self.allocated+sizelist[0]<self.pn:
+            if self.allocated + self.sizelist[0]<self.pn:
                 #炳黔写信号量
                 self.signal_2.emit(self.filelist[0], 1)
                 self.filelist.pop(0)
@@ -201,10 +201,12 @@ class MemoryManager(QObject):
             self.Lage(page, ptable)
             self.Fage(page, ptable)
             self.physical_memory[block].is_allocated = 2
-            self.physical_memory[block].content = self.file_module.disk.read_block(self.file_module.disk.data_base + ptable.table[page].outaddress) # 接口获取页内信息
-            ptable.table[page].frame=block
+
+            ptable.table[page].frame = block
             ptable.table[page].valid = 1
             ptable.table[page].is_changed = -1
+            self.physical_memory[block].content = self.file_module.disk.read_block(self.file_module.disk.data_base + ptable.table[page].outaddress) # 接口获取页内信息
+
             print("缺页中断")
             return -1
         elif block>=0:
