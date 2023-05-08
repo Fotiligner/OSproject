@@ -1,22 +1,22 @@
 import sys, os
 from PyQt5.Qt import Qt
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtCore import QRegExp, QObject, pyqtSignal
+from PyQt5.QtCore import QRegExp, QObject, pyqtSignal, QThread
 from PyQt5.QtGui import QPainter, QIcon, QCursor, QPixmap, QIntValidator, QRegExpValidator
 
 # 测试designer创建界面
 # from main_test import Ui_MainWindow
 
-from File_Module import File_Module
+from File_Module import File_Module, Ret_State
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QGraphicsView, \
     QGraphicsScene, QGraphicsItem, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
     QPushButton, QMessageBox, QLabel, QDialog, QGridLayout, QLineEdit, QDialogButtonBox, QRadioButton
 
 # from UI.main_test import Ui_MainWindow
 
-file_count = 20
-scene_width = 1200
-scene_height = 900
+# file_count = 20
+# scene_width = 1200
+# scene_height = 900
 icon_size = 90
 box_size = 100
 
@@ -103,7 +103,7 @@ class MyView(QGraphicsView):  # 视图创建 为grid提供场景
         self.init_ui()
 
     def init_ui(self):
-        self.setSceneRect(0, 0, scene_width, scene_height)
+
         self.setScene(self.scene)
         # 设置渲染属性
         self.setRenderHints(QPainter.Antialiasing |  # 抗锯齿
@@ -116,12 +116,18 @@ class MyView(QGraphicsView):  # 视图创建 为grid提供场景
         # 设置水平和竖直方向的滚动条不显示
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        # 框选功能
+        self.setDragMode(QGraphicsView.RubberBandDrag)
 
     def ui_ls(self):
+        thread = self._UILSThread(self.file_module)
+        thread.ls_done.connect(self.ui_refresh)
+        thread.start()
+
+    def ui_refresh(self, ls_nodes):
         self.scene.clear()
-        ls_nodes = self.file_module.ls()
         cnt = x = y = 0
-        row_limit = int(scene_width / box_size)
+        row_limit = int(self.width() / box_size)
         for n in ls_nodes:
             cnt += 1
             self.scene.add_box(x, y, n[0], n[1])
@@ -129,6 +135,20 @@ class MyView(QGraphicsView):  # 视图创建 为grid提供场景
             if cnt % row_limit == 0:
                 x = 0
                 y += box_size + 15
+
+    class _UILSThread(QThread):
+        ls_done = pyqtSignal(list)
+
+        def __init__(self, file_module, parent=None):
+            super().__init__(parent)
+            self.file_module = file_module
+
+        def __del__(self):
+            self.wait()
+
+        def run(self):
+            ls_nodes = self.file_module.ls()
+            self.ls_done.emit(ls_nodes)
 
     def mouseDoubleClickEvent(self, event):
         pos = event.pos()
@@ -174,6 +194,7 @@ class MainTab(QWidget):
         self.file_module = file_module
         self.process_module = process_module
         self.view = MyView(self.scene, self.file_module, self.file_signal)  # view搭配scene
+        self.view.setSceneRect(0, 0, self.width() * 2, self.height() * 2)
         layout = QVBoxLayout(self)
         layout.addWidget(self.view)
         self.setLayout(layout)
@@ -273,7 +294,8 @@ class MainTab(QWidget):
         is_executable = True
         for i in selected_items:
             print(i.node_name)
-            if len(i.node_name) < 4 or (len(i.node_name) >= 4 and not(i.node_name[-4:] == ".exe" or i.node_name[-2:] == ".e")):
+            if len(i.node_name) < 4 or (
+                    len(i.node_name) >= 4 and not (i.node_name[-4:] == ".exe" or i.node_name[-2:] == ".e")):
                 is_executable = False
                 break
 
@@ -324,9 +346,6 @@ class MainTab(QWidget):
         def ui_plus(self):
             del_layout(self.grid)
 
-            # self.grid.setContentsMargins(100, 30, 200, 30)
-            # self.grid.setSpacing(50)  # 设置间距
-
             self.grid.addWidget(QLabel(u'文件名'), 0, 0, 1, 1)
             self.file_name_edit = QLineEdit(parent=self)
             reg = QRegExp("[^ \\/:*?\"<>|]*")
@@ -369,42 +388,23 @@ class MainTab(QWidget):
                 alloc_method = "default"
                 if touch_dialog.select_btn_ran.isChecked():
                     alloc_method = "random"
-                print("file_size:%d alloc_method:%s" % (file_size, alloc_method))
-                self.view.file_module.touch(name=file_name, size=file_size, alloc_method=alloc_method)
+                ret_code = self.view.file_module.touch(name=file_name, size=file_size, alloc_method=alloc_method)
             else:
-                self.view.file_module.touch(name=file_name)
-            self.file_signal.modified.emit()
+                ret_code = self.view.file_module.touch(name=file_name)
+            if ret_code != Ret_State.Success:
+                QMessageBox.information(self, u'警告', u'文件已存在')
+            else:
+                self.file_signal.modified.emit()
 
     def ui_mkdir(self):
         name, ok = QInputDialog.getText(self, '新建目录', '输入目录名')
         if ok and name:
-            self.view.file_module.mkdir(name)
-            self.file_signal.modified.emit()
+            ret_code = self.view.file_module.mkdir(name)
+            if ret_code != Ret_State.Success:
+                QMessageBox.information(self, u'警告', u'文件夹已存在')
+            else:
+                self.file_signal.modified.emit()
 
     def ui_back(self):
         self.view.file_module.cd("..")
         self.file_signal.modified.emit()
-
-
-class MyMainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.tabs = QTabWidget(self)
-        # 添加标签页
-        self.tab1 = MainTab()
-        self.tab2 = Process_Module_UI.ProcessTab()
-        self.tabs.addTab(self.tab1, "首页")
-        self.tabs.addTab(self.tab2, "进程模块")
-        self.tabs.addTab(self.tab4, "进程模块")
-        self.setCentralWidget(self.tabs)
-        self.tabs.setCurrentIndex(0)  # 首页
-        self.setGeometry(100, 100, scene_width + 100, scene_height + 100)
-        self.resize(scene_width + 100, scene_height + 100)
-        self.setFixedSize(scene_width + 100, scene_height + 100)
-        self.setWindowTitle("操作系统模拟")
-
-# if __name__ == '__main__':
-#     app = QApplication(sys.argv)
-#     window = MyMainWindow()   # 主界面
-#     window.show()
-#     sys.exit(app.exec_())
