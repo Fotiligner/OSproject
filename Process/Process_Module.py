@@ -125,7 +125,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
     # def init_process_module(self):
 
     def create_process(self, file_name, priority):
-        print("create_process:"+str(file_name))
+        #print("create_process:"+str(file_name))
         if file_name.split('.')[1] == "exe": # 判断是否为可执行文件
             # 注意，创建进程的时候，是使用生产者消费者模型的，这里要调用内存模块的接口
             # 需要内存返回首地址,内存模块负责将file_name 传递给文件模块，然后回传
