@@ -133,7 +133,7 @@ class MemoryManager(QObject):
         else:
             if type==0:
                 self.allocated += s
-
+            psize=s
             if pid in self.page_tables.keys():  # 已经有页表
                 ptable = self.page_tables[pid]
             else:  # 创建页表
@@ -145,18 +145,15 @@ class MemoryManager(QObject):
                 if self.physical_memory[i].is_allocated == -1:  # 该页未分配
                     self.physical_memory[i].pid = pid
                     self.physical_memory[i].is_allocated = 2
-                    # 下面原来是size，需要改成psize？
-                    ptable.table[size - s].frame = i
-                    ptable.table[size - s].valid = 1
-                    ptable.table[size - s].entry = 1
-                    self.Fage(size - s, ptable)
+                    ptable.table[psize - s].frame = i
+                    ptable.table[psize - s].valid = 1
+                    ptable.table[psize - s].entry = 1
+                    self.Fage(psize - s, ptable)
                     self.physical_memory[i].content = self.file_module.disk.read_block(
-                        self.file_module.disk.data_base + ptable.table[size - s].outaddress)
+                        self.file_module.disk.data_base + ptable.table[psize - s].outaddress)
                     s = s - 1
-                    if size - s >= psize:
+                    if s == 0:
                         break
-                if s == 0:
-                    break
             return psize
 
     def free(self, pid):    # 释放进程
