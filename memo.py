@@ -67,7 +67,6 @@ class Frame:    # 一个内存块
 
     def write(self,offset, ch):
         num=int(offset)
-        print(num, ch)
         if len(self.content)>num:
             self.content = self.content[:num] + ch[0] + self.content[num + 1:]
             #self.content[num]=ch[0]
@@ -96,7 +95,6 @@ class MemoryManager(QObject):
         self.filelist = []                                              # 未被满足的文件队列
         self.file_module = file_module                                  # 文件模块接口
 
-        print(self.schedule)
 
     def change_FIFO(self):
         self.schedule = 'FIFO'
@@ -168,7 +166,6 @@ class MemoryManager(QObject):
                 self.physical_memory[b].clr()
                 self.allocated=self.allocated-1
 
-        print(pid)
         self.signal.emit(ptable, pid)
         ptable.table.clear()
         self.page_tables.pop(pid)
@@ -247,7 +244,6 @@ class MemoryManager(QObject):
         file_fcb = self.file_module.get_fcb(filename)  # 文件接口
         if file_fcb:
             disk_loc = file_fcb.disk_loc
-            # print("disk_loc", disk_loc)
         else:
             print("UNFOUNDE FILE !!!!")  # 返回错误码
             return
@@ -263,16 +259,13 @@ class MemoryManager(QObject):
             self.page_fault += s
             if filename in self.ftables.keys():  # 已经有页表
                 ftable = self.ftables[filename]
-                print(ftable)
             else:  # 创建页表
                 ftable = PageTable(psize)
                 self.ftables[filename] = ftable
-                print(len(ftable.table))
             for i in range(psize):
                 ftable.table[i].outaddress = disk_loc[i]
             for i in range(self.pn):
                 if self.physical_memory[i].is_allocated == -1:  # 该页未分配
-                    print(s, a)
                     self.physical_memory[i].is_allocated = 1
                     self.physical_memory[i].filename=filename
                     ftable.table[a].frame = i
@@ -280,7 +273,6 @@ class MemoryManager(QObject):
                     ftable.table[a].entry = 1
                     self.Fage(a, ftable)
                     self.physical_memory[i].content=self.file_module.disk.read_block(self.file_module.disk.data_base + ftable.table[a].outaddress)
-                    # print(self.physical_memory[i].content)
                     a = a + 1
                     if a == s:
                         break
@@ -370,7 +362,6 @@ class MemoryManager(QObject):
             ptable.table[idx].entry = 0
 
     def Lage(self,idx,ptable):  # 用于LRU记录顺序
-        print(idx)
         for i in range(len(ptable.table)):
             if ptable.table[i].valid==1:
                 ptable.table[i].visit+=1
