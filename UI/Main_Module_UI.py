@@ -3,6 +3,7 @@ from PyQt5.Qt import Qt
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import QRegExp, QObject, pyqtSignal, QThread
 from PyQt5.QtGui import QPainter, QIcon, QCursor, QPixmap, QIntValidator, QRegExpValidator
+import time
 
 # 测试designer创建界面
 # from main_test import Ui_MainWindow
@@ -209,6 +210,8 @@ class MainTab(QWidget):
         # 临时创建，为了让主界面可以调用
         self.action_cmd = QAction(QIcon('./UI/image/cmd.png'), u'控制台', self)
 
+        self.waiting_time = 0
+
     def handleFileSignalEmit(self):
         self.view.ui_ls()
 
@@ -292,6 +295,9 @@ class MainTab(QWidget):
 
     def ui_run(self, selected_items):
         is_executable = True
+        is_bat = False
+
+        #检测是不是executable文件
         for i in selected_items:
             print(i.node_name)
             if len(i.node_name) < 4 or (
@@ -301,12 +307,44 @@ class MainTab(QWidget):
 
         print(is_executable)
 
-        if not is_executable:
+        ### 检测是不是批处理文件
+        for i in selected_items:
+            if(i.node_name[-4:] == ".bat"):
+                reply = QMessageBox.information(self, "测试", "执行测试文件",
+                                                QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+                is_bat=True
+
+        if is_bat:
+            self.run_bat(selected_items)
+        elif not is_executable:
             reply = QMessageBox.information(self, "Error", "Non-executable files included",
                                             QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         else:
             for i in selected_items:
                 self.process_module.create_process(i.node_name, 1)
+
+    def run_bat(self,file):
+        try:
+            #print("bat:"+str(self.file_module.get_fcb(file[0].node_name)))
+            #print("bat"+str(self.file_module.read_file(self.file_module.get_fcb(file[0].node_name))))
+            file_content = str(self.file_module.read_file(self.file_module.get_fcb(file[0].node_name)))
+            for i in file_content.split(";"):
+                print("current row"+i)
+                if(i[-4:] == ".exe"):
+                    self.process_module.create_process(i, 1)
+                    print("创建exe进程")
+                elif(i[-2:] == ".e"):
+                    self.process_module.create_process(i, 2)
+                    print("创建e进程")
+                elif(i.isdigit()):
+                    time.sleep(int(i))
+
+
+
+        except Exception as ex:
+            print("出现如下异常%s" % ex)
+
+
 
     class _TouchDialog(QDialog):
         def __init__(self, parent=None):

@@ -9,6 +9,7 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QPalette, QIcon, QPainter, QBrush, QPixmap, QStandardItemModel, QStandardItem, QColor, QFont
 
 
 class Ui_MainWindow(object):
@@ -16,6 +17,9 @@ class Ui_MainWindow(object):
         MainWindow.setObjectName("MainWindow")
         MainWindow.setEnabled(True)
         MainWindow.resize(1200, 900)
+        palette = QPalette()
+        palette.setBrush(QPalette.Background, QBrush(QPixmap("./UI/image/background.jpg")))
+        self.setPalette(palette)
         MainWindow.setMinimumSize(QtCore.QSize(1200, 900))
         MainWindow.setMaximumSize(QtCore.QSize(1200, 900))
         self.centralwidget = QtWidgets.QWidget(MainWindow)
