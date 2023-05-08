@@ -109,23 +109,30 @@ class MemoryManager(QObject):
             return 1
         return -1
 
-
     def alloc(self, pid, size, filename):  # 给进程分配内存
-        s = size
-        if s+self.allocated > self.pn:
+
+        file_fcb = self.file_module.get_fcb(filename)  # 文件接口
+        if file_fcb:
+            disk_loc = file_fcb.disk_loc
+            # print("disk_loc", disk_loc)
+        else:
+            print("UNFOUNDE FILE !!!!")  # 返回错误码
+            return
+        psize = len(disk_loc)
+        if psize < size:  # 分配的太多了
+            s = psize
+        elif psize > 2 * size:  # 分配的太少了
+            s = psize // 2 if psize < 30 else 15
+        else:
+            s = size
+        if s + self.allocated > self.pn:
             self.pidlist.append(pid)
             self.sizelist.append(size)
+            # 加个提醒输出
             return -1
         else:
             self.allocated += size
-            file_fcb = self.file_module.get_fcb(filename)  # 文件接口
-            if file_fcb:
-                disk_loc = file_fcb.disk_loc
-                #print("disk_loc", disk_loc)
-            else:
-                print("UNFOUNDE FILE !!!!") # 返回错误码
-                return
-            psize=len(disk_loc)
+
             if pid in self.page_tables.keys():  # 已经有页表
                 ptable = self.page_tables[pid]
             else:  # 创建页表
@@ -137,13 +144,13 @@ class MemoryManager(QObject):
                 if self.physical_memory[i].is_allocated == -1:  # 该页未分配
                     self.physical_memory[i].pid = pid
                     self.physical_memory[i].is_allocated = 2
-                    ptable.table[size-s].frame = i
-                    ptable.table[size-s].valid=1
+                    ptable.table[size - s].frame = i
+                    ptable.table[size - s].valid = 1
                     ptable.table[size - s].entry = 1
                     self.Fage(size - s, ptable)
-                    self.physical_memory[i].content=self.file_module.disk.read_block(self.file_module.disk.data_base + ptable.table[size-s].outaddress)
-                    # print(self.physical_memory[i].content)
-                    s = s-1
+                    self.physical_memory[i].content = self.file_module.disk.read_block(
+                        self.file_module.disk.data_base + ptable.table[size - s].outaddress)
+                    s = s - 1
                     if size - s >= psize:
                         break
                 if s == 0:
