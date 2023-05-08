@@ -91,7 +91,7 @@ class MemoryManager(QObject):
         self.page_fault = 0                                             # 缺页中断发生次数
         self.page_access = 0                                            # 页访问次数
         self.physical_rate = 0                                          # 内存使用率记录
-        self.pidlist=[]                                                 # 未被满足的进程队列
+        self.filelist=[]                                                 # 未被满足的进程队列（文件名）
         self.sizelist=[]                                                # 未被满足的需求块数队列
         self.filelist = []                                              # 未被满足的文件队列
         self.file_module = file_module                                  # 文件模块接口
@@ -114,7 +114,6 @@ class MemoryManager(QObject):
         file_fcb = self.file_module.get_fcb(filename)  # 文件接口
         if file_fcb:
             disk_loc = file_fcb.disk_loc
-            # print("disk_loc", disk_loc)
         else:
             print("UNFOUNDE FILE !!!!")  # 返回错误码
             return
@@ -126,12 +125,12 @@ class MemoryManager(QObject):
         else:
             s = size
         if s + self.allocated > self.pn:
-            self.pidlist.append(pid)
-            self.sizelist.append(size)
+            self.filelist.append(filename)
+            self.sizelist.append(s)
             # 加个提醒输出
             return -1
         else:
-            self.allocated += size
+            self.allocated += s
 
             if pid in self.page_tables.keys():  # 已经有页表
                 ptable = self.page_tables[pid]
@@ -169,14 +168,17 @@ class MemoryManager(QObject):
                 self.physical_memory[b].clr()
                 self.allocated=self.allocated-1
 
-        print("hello1")
         print(pid)
         self.signal.emit(ptable, pid)
-        print("hello2")
         ptable.table.clear()
         self.page_tables.pop(pid)
         if status == 0:
             return False
+        if filelist:
+            if self.allocated+sizelist[0]<self.pn:
+                #炳黔写信号量
+                filelist.pop(0)
+                sizelist.pop(0)
         return True
 
     def access(self, pid, address):
