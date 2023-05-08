@@ -107,7 +107,7 @@ class MemoryManager(QObject):
             return 1
         return -1
 
-    def alloc(self, pid, size, filename):  # 给进程分配内存
+    def alloc(self, pid, size, filename, type):  # 给进程分配内存
 
         file_fcb = self.file_module.get_fcb(filename)  # 文件接口
         if file_fcb:
@@ -122,13 +122,14 @@ class MemoryManager(QObject):
             s = psize // 2 if psize < 30 else 15
         else:
             s = size
-        if s + self.allocated > self.pn:
+        if type==0 and s + self.allocated > self.pn:
             self.filelist.append(filename)
             self.sizelist.append(s)
             # 加个提醒输出
             return -1
         else:
-            self.allocated += s
+            if type==0:
+                self.allocated += s
 
             if pid in self.page_tables.keys():  # 已经有页表
                 ptable = self.page_tables[pid]
