@@ -351,7 +351,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
 
                 if(self.running_pid != -1):
                     print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行中")
-                    self.current_status_label.table_updated.emit()  # 发送信号
+                    #self.current_status_label.table_updated.emit()  # 发送信号
                     #self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1
                 # elif self.running_pid != -1:
                 #     print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行结束")
