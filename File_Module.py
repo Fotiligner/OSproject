@@ -350,7 +350,8 @@ class File_Module:
     def head_seek(self, disk_locs, algo, init_loc):
         """
         磁头寻道算法
-        :param disk_loc:磁道序列
+        :param init_loc: 磁头初始位置
+        :param disk_locs: 磁道序列
         :param algo:磁头寻道算法
         :return: 不同算法返回的队列
         """

@@ -11,7 +11,7 @@ import time
 from File_Module import File_Module, Ret_State
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QGraphicsView, \
     QGraphicsScene, QGraphicsItem, QMenu, QAction, QInputDialog, QGraphicsPixmapItem, QTextEdit, \
-    QPushButton, QMessageBox, QLabel, QDialog, QGridLayout, QLineEdit, QDialogButtonBox, QRadioButton
+    QPushButton, QMessageBox, QLabel, QDialog, QGridLayout, QLineEdit, QDialogButtonBox, QRadioButton, QHBoxLayout
 
 # from UI.main_test import Ui_MainWindow
 
@@ -99,7 +99,7 @@ class MyView(QGraphicsView):  # 视图创建 为grid提供场景
         self.scene = scene
         self.file_module = file_module
         self.file_signal = file_signal
-        self.layout = QVBoxLayout()
+        self.layout = QGridLayout()
 
         self.init_ui()
 
@@ -168,9 +168,11 @@ class MyView(QGraphicsView):  # 视图创建 为grid提供场景
         btn_save_exit = QPushButton("保存并退出")
         text = self.file_module.read_file(file_node)
         text_edit.setPlainText(text)
-        self.layout.addWidget(text_edit)
-        self.layout.addWidget(btn_cancel)
-        self.layout.addWidget(btn_save_exit)
+        self.layout.addWidget(text_edit, 0, 0, 1, 2)
+        self.layout.addWidget(btn_cancel, 1, 0)
+        self.layout.addWidget(btn_save_exit, 1, 1)
+        self.layout.setSpacing(0)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         btn_cancel.clicked.connect(lambda: self.text_edit_cancel())
         btn_save_exit.clicked.connect(lambda: self.text_edit_save_exit(text_edit, file_node))
         self.setLayout(self.layout)
@@ -297,7 +299,7 @@ class MainTab(QWidget):
         is_executable = True
         is_bat = False
 
-        #检测是不是executable文件
+        # 检测是不是executable文件
         for i in selected_items:
             print(i.node_name)
             if len(i.node_name) < 4 or (
@@ -309,10 +311,10 @@ class MainTab(QWidget):
 
         ### 检测是不是批处理文件
         for i in selected_items:
-            if(i.node_name[-4:] == ".bat"):
+            if (i.node_name[-4:] == ".bat"):
                 reply = QMessageBox.information(self, "测试", "执行测试文件",
                                                 QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
-                is_bat=True
+                is_bat = True
 
         if is_bat:
             self.run_bat(selected_items)
@@ -323,28 +325,26 @@ class MainTab(QWidget):
             for i in selected_items:
                 self.process_module.create_process(i.node_name, 1)
 
-    def run_bat(self,file):
+    def run_bat(self, file):
         try:
-            #print("bat:"+str(self.file_module.get_fcb(file[0].node_name)))
-            #print("bat"+str(self.file_module.read_file(self.file_module.get_fcb(file[0].node_name))))
+            # print("bat:"+str(self.file_module.get_fcb(file[0].node_name)))
+            # print("bat"+str(self.file_module.read_file(self.file_module.get_fcb(file[0].node_name))))
             file_content = str(self.file_module.read_file(self.file_module.get_fcb(file[0].node_name)))
             for i in file_content.split(";"):
-                print("current row"+i)
-                if(i[-4:] == ".exe"):
+                print("current row" + i)
+                if (i[-4:] == ".exe"):
                     self.process_module.create_process(i, 1)
                     print("创建exe进程")
-                elif(i[-2:] == ".e"):
+                elif (i[-2:] == ".e"):
                     self.process_module.create_process(i, 2)
                     print("创建e进程")
-                elif(i.isdigit()):
+                elif (i.isdigit()):
                     time.sleep(int(i))
 
 
 
         except Exception as ex:
             print("出现如下异常%s" % ex)
-
-
 
     class _TouchDialog(QDialog):
         def __init__(self, parent=None):
