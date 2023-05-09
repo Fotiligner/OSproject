@@ -120,6 +120,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
 
         self.chd_pid = 0
         self.kill = False
+        self.over_now = False
 
         self.memory_module.signal_2.connect(self.create_process_plus)
 
@@ -272,7 +273,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 #self.print_status()
                 if(self.running_pid == -1):  # 如果当前没有进程,先调度一个进程再开始运行
                     self.scheduler("no running")
-                    self.set_start(self.running_pid, current_time)
+                    #self.set_start(self.running_pid, current_time)
                 if(self.running_pid != -1):
                     ## 向内存中要一段代码的位置 传递过去pid和程序计数器pc  返回一个字符串  需要提前定义好一行指令的大小
                     ## 下面这行代码会放入内存取地址的内容
@@ -350,6 +351,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
 
                 if(self.running_pid != -1):
                     print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行中")
+                    self.current_status_label.table_updated.emit()  # 发送信号
                     #self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1
                 # elif self.running_pid != -1:
                 #     print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行结束")
@@ -361,8 +363,9 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
 
             elif not e.is_set():           # 进入中断
                 e.wait()  # 正在阻塞状态,当event变为True时就激活
+                self.process_over()
                 #print("一个原子时间结束,启动调度算法")
-                self.set_end(self.running_pid, current_time)
+                #self.set_end(self.running_pid, current_time)
                 self.scheduler("time")  # 进程抢占在这里完成
                 self.set_start(self.running_pid, current_time)
                 target = True
@@ -436,7 +439,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
             type, self.chd_pid = self.getCurrentpid()  # 从success里调到外，可能有bug
             if running_pid != -1:
                 name_of_file =self.pcb_pool[self.loc_pid_inPool(self.running_pid)].file_name
-            alloc_output = self.memory_module.alloc(self.chd_pid, self.page_per_process,name_of_file )
+            alloc_output = self.memory_module.alloc(self.chd_pid, self.page_per_process,name_of_file, type=0)
             if alloc_output >= 0:  # 内存分配成功
                 #先创建一个pcb 随便一个pcb  然后深层复制
                 fork_pcb = PCB(self.chd_pid, parent_pid=-1, \
@@ -469,7 +472,8 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 print("在" + str(current_time) + "时刻" + "进程" + str(
                     self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid) + "运行结束")
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].final_time = current_time
-                self.process_over()  # 释放进程部分的指令
+                self.process_over_safe()  # 释放进程部分的指令
+                #self.scheduler("no runnning")
 
     def print_status(self):
         print("========")
@@ -481,16 +485,22 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
             print(i.pid,end=' ')
         print("]")
         print("========")
+
+    def process_over_safe(self):
+        self.over_now = True
     ## 进程正常终止的函数 应该不存在设备队列的问题所以没有释放设备
+    ## 保证进程占用满一个上升沿
     def process_over(self):
-        if self.running_pid in self.ready_queue:
-            self.ready_queue.remove(self.running_pid)
-        if self.running_pid in self.waiting_queue:
-            self.waiting_queue.remove(self.running_pid)
-        self.memory_module.free(self.running_pid)
-        ## 遍历当前进程的所有子进程并把子进程的父进程改成init进程
-        self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "terminated" #把当前进程改成中止
-        self.running_pid = -1  # 把当前运行的改为没有
+        if self.over_now:
+            self.over_now = False
+            if self.running_pid in self.ready_queue:
+                self.ready_queue.remove(self.running_pid)
+            if self.running_pid in self.waiting_queue:
+                self.waiting_queue.remove(self.running_pid)
+            self.memory_module.free(self.running_pid)
+            ## 遍历当前进程的所有子进程并把子进程的父进程改成init进程
+            self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "terminated" #把当前进程改成中止
+            self.running_pid = -1  # 把当前运行的改为没有
 
         ##self.gantt_graph()
 
