@@ -381,8 +381,9 @@ class MemoryManager(QObject):
                 page=i
         if ptable.table[page].is_changed == 1:
             self.file_module.disk.write_block(ptable.table[page].outaddress, self.physical_memory[ptable.table[page].frame].content)
+        frame=ptable.table[page].frame
         ptable.delete(page)
-        return page
+        return frame
 
     def FIFO(self, ptable):
         max=0
@@ -394,8 +395,9 @@ class MemoryManager(QObject):
         if ptable.table[page].is_changed == 1:
             self.file_module.disk.write_block(self.file_module.disk.database + ptable.table[page].outaddress,
                                               self.physical_memory[ptable.table[page].frame].content)
+        frame = ptable.table[page].frame
         ptable.delete(page)
-        return page
+        return frame
 
 if __name__ == '__main__':
     M=MemoryManager()
