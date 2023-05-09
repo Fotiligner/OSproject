@@ -122,7 +122,7 @@ class MemoryManager(QObject):
         if psize < size:  # 分配的太多了,psize是进程虚拟内存空间，
             s = psize
         elif psize > 2 * size:  # 分配的太少了
-            s = psize // 2 if psize < 30 else 15
+            s = psize // 2 if psize < 32 else 16
         else:
             s = size
         if type==0 and s + self.allocated > self.pn:
@@ -175,12 +175,14 @@ class MemoryManager(QObject):
         self.page_tables.pop(pid)
         if status == 0:
             return False
-        if self.filelist:
+        while self.filelist:
             if self.allocated + self.sizelist[0]<self.pn:
                 self.allocated+=self.sizelist[0]
                 self.signal_2.emit(self.filelist[0], 1)
                 self.filelist.pop(0)
                 self.sizelist.pop(0)
+            else:
+                break
         return True
 
     def access(self, pid, address):
