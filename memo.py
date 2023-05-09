@@ -145,6 +145,8 @@ class MemoryManager(QObject):
                 if self.physical_memory[i].is_allocated == -1:  # 该页未分配
                     self.physical_memory[i].pid = pid
                     self.physical_memory[i].is_allocated = 2
+                    self.page_fault+=1
+                    ptable.fault+=1
                     ptable.table[psize - s].frame = i
                     ptable.table[psize - s].valid = 1
                     ptable.table[psize - s].entry = 1
@@ -175,7 +177,7 @@ class MemoryManager(QObject):
             return False
         if self.filelist:
             if self.allocated + self.sizelist[0]<self.pn:
-                #炳黔写信号量
+                self.allocated+=self.sizelist[0]
                 self.signal_2.emit(self.filelist[0], 1)
                 self.filelist.pop(0)
                 self.sizelist.pop(0)
