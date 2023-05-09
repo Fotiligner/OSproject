@@ -64,20 +64,21 @@ class IO_Module(QObject):
                 if request.rw_state == 'p': # 缺页中断，直接跳过
                    print("缺页中断")
                 else:
-                    if request.file_path in self.file_table.keys() and (self.file_table[request.file_path] == 'r' \
+                    if request.file_path in self.file_table.keys() and ((self.file_table[request.file_path] == 'r' \
+                                                                        and request.rw_state != 'w') \
                                                                         or self.file_table[request.file_path] == '0'):  # 已经存在且处于读状态
+                        print("writing enter")
                         if self.memory_module.search_file(request.file_path) == 1:
                             self.file_table[request.file_path] = request.rw_state
                             request.is_running = 1
                         else:
-                            print("hello4")
                             target = self.memory_module.falloc(request.file_path)
                             if target == 1:  # 分配成功
                                 self.file_table[request.file_path] = request.rw_state
                                 request.is_running = 1
                     elif request.file_path not in self.file_table.keys():
+                        print("reading enter")
                         # 根本不存在，没有进来过，直接开始分配
-                        print("hello5")
                         target = self.memory_module.falloc(request.file_path)
                         if target == 1:  # 分配成功
                             self.file_table[request.file_path] = request.rw_state
@@ -145,13 +146,13 @@ class IO_Module(QObject):
                 if request.rw_state == 'p':
                     request.is_running = 1
                 else:
-                    if request.file_path in self.file_table.keys() and (self.file_table[request.file_path] == 'r' \
+                    if request.file_path in self.file_table.keys() and ((self.file_table[request.file_path] == 'r' \
+                                                                        and request.rw_state != 'w') \
                                                                         or self.file_table[request.file_path] == '0'):  # 已经存在且处于读状态
                         if self.memory_module.search_file(request.file_path) == 1:
                             self.file_table[request.file_path] = request.rw_state
                             request.is_running = 1
                         else:
-                            print("hello1")
                             target = self.memory_module.falloc(request.file_path)
                             if target == 1: # 分配成功
                                 self.file_table[request.file_path] = request.rw_state
@@ -160,7 +161,6 @@ class IO_Module(QObject):
                                 continue
                     elif request.file_path not in self.file_table.keys():
                         # 根本不存在，没有进来过，直接开始分配
-                        print("hello3")
                         target = self.memory_module.falloc(request.file_path)
                         if target == 1:  # 分配成功
                             self.file_table[request.file_path] = request.rw_state

@@ -210,7 +210,7 @@ class IO_Tab(Ui_QWidget, threading.Thread):
             disk_info = self.io_module.disk_request_list
             for i, request in enumerate(disk_info):
                 # '文件名', 'pid', '磁盘读写状态', '已执行时间'
-                if request.is_finish == 0 and request.is_terminate == 0:  # 对于所有非中止的内容都进行打印
+                if request.is_running != 0 and request.is_finish == 0 and request.is_terminate == 0:  # 对于所有非中止的内容都进行打印
                     content1 = request.file_path
                     content2 = str(request.source_pid)
                     if request.rw_state == 'r':
