@@ -111,9 +111,6 @@ class IO_Tab(Ui_QWidget, threading.Thread):
         self.tableWidget_2.clear()
         self.tableWidget_3.clear()
 
-        #self.textEdit_2.clear()
-
-        #print(self.io_module.device_table["printer"].is_busy)
         device_count = []   # 设备数量，可自定义
 
         for k, v in self.io_module.device_table.items():  # 设备名和设备device类
@@ -126,7 +123,6 @@ class IO_Tab(Ui_QWidget, threading.Thread):
         self.tableWidget_3.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 
         # 设定行列数和设备当前使用信息
-        #print(device_count)
         self.tableWidget.setRowCount(device_count[0])
         self.tableWidget_2.setRowCount(device_count[1])
         self.tableWidget_3.setRowCount(0)

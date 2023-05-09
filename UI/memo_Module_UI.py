@@ -11,7 +11,8 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox
 import UI.UI_utils
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
-from PyQt5.QtGui import QIcon, QPainter, QBrush, QPixmap, QStandardItemModel, QStandardItem, QColor, QFont
+from PyQt5.QtGui import QPalette, QIcon, QPainter, QBrush, QPixmap, QStandardItemModel, QStandardItem, QColor, QFont
+
 
 ### 预留给晗哥的位置
 class Label4(QLabel):
@@ -34,9 +35,12 @@ class currentStatusLabel(QLabel):
         self.text_label1.setAlignment(Qt.AlignCenter)
         self.text_label2 = QLabel("内存使用率")
         self.text_label2.setAlignment(Qt.AlignCenter)
+        self.text_label3 = QLabel("长期调度队列长度")
+        self.text_label3.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.text_label1)
         layout.addWidget(self.text_label)
         layout.addWidget(self.text_label2)
+        layout.addWidget(self.text_label3)
         self.setLayout(layout)
 
     #更新文本
@@ -49,6 +53,14 @@ class currentStatusLabel(QLabel):
         self.text_label.setText(f"访存次数: {Number_of_calls}")
         self.text_label2.setText(f"内存使用率:{Memory_usage}")
 
+        output = "["
+        for i, file_name in enumerate(self.memory_module.filelist):
+            output += file_name
+            if i < len(self.memory_module.filelist):
+                output += "、"
+        output += "]"
+        self.text_label3.setText(f"长期调度队列:\n{output}")
+
 
 ### 切换调度算法的
 class SchedulerLabel(QLabel):
@@ -57,7 +69,7 @@ class SchedulerLabel(QLabel):
         self.memory_module = memory_module
 
         layout = QVBoxLayout()
-        self.text_label = QLabel("选择调页算法")
+        self.text_label = QLabel(f"当前调页算法:{self.memory_module.schedule}")
         self.text_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.text_label)
         self.button1 = QPushButton("FIFO")
@@ -87,6 +99,10 @@ class MemoTab(QWidget):
         row2_layout = QHBoxLayout()
         label = Label4("内存显示图")
         self.tableWidget = QTableWidget()
+        self.tableWidget.setAutoFillBackground(True)
+        palette = QPalette()
+        palette.setColor(QPalette.Window, Qt.white)
+        self.tableWidget.setPalette(palette)
         self.tableWidget.setFixedSize(1000, 300)
         row2_layout.addWidget(label)
         row2_layout.addWidget(self.tableWidget)
@@ -120,8 +136,8 @@ class MemoTab(QWidget):
     def init_memo_process_tab(self):  # 各进程缺页访存数量统计
         self.tableWidget_2.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.tableWidget_2.setRowCount(0)
-        self.tableWidget_2.setColumnCount(4)
-        self.tableWidget_2.setHorizontalHeaderLabels(['进程程序名', '访存数', '缺页数', '调页算法'])
+        self.tableWidget_2.setColumnCount(5)
+        self.tableWidget_2.setHorizontalHeaderLabels(['进程程序名', '访存数', '缺页数', '缺页率', '调页算法'])
 
 
     def update_memo_process_tab(self, page_table, pid):   # 内存释放进程后将信息存入这张表中
@@ -137,8 +153,11 @@ class MemoTab(QWidget):
         newItem = QTableWidgetItem(str(page_table.fault))
         self.tableWidget_2.setItem(line, 2, newItem)
 
-        newItem = QTableWidgetItem(self.memo_module.schedule)
+        newItem = QTableWidgetItem("{:.2%}".format(page_table.fault / page_table.access))
         self.tableWidget_2.setItem(line, 3, newItem)
+
+        newItem = QTableWidgetItem(self.memo_module.schedule)
+        self.tableWidget_2.setItem(line, 4, newItem)
 
     def update_memory_tab(self):  # 内存状态图显示
         self.tableWidget.clear()
@@ -172,7 +191,7 @@ class MemoTab(QWidget):
 
             else:   # 进程文件
                 newItem = QTableWidgetItem("pid=" + str(page_info.pid))
-                newItem.setBackground(QBrush(QColor(0, 120, 255)))
+                newItem.setBackground(QBrush(QColor(min(10 * page_info.pid, 255), min(120 + 10 * page_info.pid, 255), max(0, 255 - 20 * page_info.pid))))
                 self.tableWidget.setItem(row, col, newItem)
 
 

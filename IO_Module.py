@@ -210,6 +210,13 @@ class IO_Module(QObject):
                     if request.target_device_count != -1: # 已经分配，则释放设备
                         device.is_busy[request.target_device_count] = 0  # 重新置为空闲
 
+                        # 在有进程request释放设备时，查看是否为未开始的request分配设备
+                        for request_non in device.request_queue:
+                            if request_non.target_device_count == -1:
+                                request_non.target_device_count = request.target_device_count
+                                device.is_busy[request.target_device_count] = 1  # 重新占用设备
+                                break
+
         for request in self.disk_request_list:   # 回退文件表读写情况
             if request.source_pid == pid:
                 request.is_terminate = 1

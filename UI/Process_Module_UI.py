@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBo
     QPushButton, QHBoxLayout, QScrollArea, QSizePolicy, QLineEdit,QScrollBar,QGridLayout,QMessageBox,QTableWidget,QTableWidgetItem
 
 import Process.Process_Module
+from PyQt5.QtGui import QPalette, QIcon, QPainter, QBrush, QPixmap, QStandardItemModel, QStandardItem, QColor, QFont
 
 # 进程模块的TAB
 import sys
@@ -236,6 +237,10 @@ class ganttLabel(QLabel):
         self.grid = QGridLayout()
         gridWidget = QWidget()
         gridWidget.setLayout(self.grid)
+        gridWidget.setAutoFillBackground(True)
+        palette = QPalette()
+        palette.setColor(QPalette.Window, Qt.white)
+        gridWidget.setPalette(palette)
         scrollArea.setWidget(gridWidget)
 
         self.timer = QTimer(self)
