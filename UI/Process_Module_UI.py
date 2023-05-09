@@ -34,7 +34,7 @@ class currentStatusLabel(QLabel):
         ## 设置定时器
         self.timer = QTimer()
         self.timer.timeout.connect(self.updateText)
-        self.timer.start(100)
+        self.timer.start(300)
 
         layout = QVBoxLayout()
         ### 上面的文字部分
@@ -146,21 +146,23 @@ class readyQueueLabel(QLabel):
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_slots)
-        self.timer.start(1000)
+        self.timer.start(100)
         self.setLayout(self.layout)
 
     def update_slots(self):
-        for i in range(self.layout.count() - 1, -1, -1):
-            widget = self.layout.itemAt(i).widget()
-            if isinstance(widget, QPushButton):
-                widget.setParent(None)
-        ready_queue = self.process_module.ready_queue
-        num_buttons = len(ready_queue)
-        for i in range(num_buttons):
-            btn = QPushButton("进程 {}".format(ready_queue[i]))
-            btn.clicked.connect(lambda _, pid=ready_queue[i]: self.confirm_slot(pid))
-            self.layout.addWidget(btn)
-
+        try:
+            for i in range(self.layout.count() - 1, -1, -1):
+                widget = self.layout.itemAt(i).widget()
+                if isinstance(widget, QPushButton):
+                    widget.setParent(None)
+            ready_queue = self.process_module.ready_queue
+            num_buttons = len(ready_queue)
+            for i in range(num_buttons):
+                btn = QPushButton(f"进程 {(ready_queue[i])},pc={self.process_module.pcb_pool[self.process_module.loc_pid_inPool(ready_queue[i])].pc}")
+                btn.clicked.connect(lambda _, pid=ready_queue[i]: self.confirm_slot(pid))
+                self.layout.addWidget(btn)
+        except Exception as ex:
+            print("出现如下异常%s" % ex)
     def confirm_slot(self, pid):
         try:
             reply = QMessageBox.question(self, '提示', f'是否杀死进程 {pid}？',
@@ -203,7 +205,7 @@ class waitingQueueLabel(QLabel):
         num_buttons = len(waiting_queue)
 
         for i in range(num_buttons):
-            btn = QPushButton("进程 {}".format(waiting_queue[i]))
+            btn = QPushButton(f"进程 {(waiting_queue[i])},pc={self.process_module.pcb_pool[self.process_module.loc_pid_inPool(waiting_queue[i])].pc}")
             btn.clicked.connect(lambda _, pid=waiting_queue[i]: self.confirm_slot(pid))
             self.layout.addWidget(btn)
 
