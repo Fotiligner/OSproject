@@ -191,6 +191,7 @@ class FCB:
 class File_Module:
     root_path = '~'
     root_dir = Dir('~')
+    root_dir.parent=root_dir
     work_path = root_path
     work_dir = root_dir
 
@@ -447,29 +448,6 @@ class File_Module:
             self.disk.write_block(self.disk.data_base + fcb.disk_loc[i], buf)
             buf = buf[self.disk.blk_size:]
 
-    def find_node(self, path):
-        """
-        返回路径所需结点。
-        :param path: 文件路径。
-        :return: 存在则返回节点，不存在则返回None。
-        """
-        nodes = path.split('/')
-        now_dir = self.root_dir
-        last_node = self.root_dir
-        for i in range(1, len(nodes)):
-            flag = False
-            for c in now_dir.childs:
-                if nodes[i] == c.name:
-                    if i == len(nodes) - 1:
-                        last_node = c
-                    elif isinstance(c, Dir):
-                        now_dir = c
-                        flag = True
-            if not flag:
-                last_node = None
-                break
-        return last_node
-
     def mkdir(self, name):
         """
         为shell提供的命令，创建目录。
@@ -509,7 +487,7 @@ class File_Module:
         if dir_name == '..':
             temp = self.work_path.split('/')
             self.work_path = '/'.join(temp[:-1])
-            self.work_dir = self.find_node(self.work_path)
+            self.work_dir=self.work_dir.parent
         elif dir_name == '~':
             self.work_path = self.root_path
             self.work_dir = self.root_dir

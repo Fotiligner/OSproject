@@ -361,8 +361,6 @@ class MainTab(QWidget):
             self.setWindowTitle(u'新建文件')
 
             self.grid = QGridLayout()
-            # self.grid.setContentsMargins(100, 30, 200, 30)
-            # self.grid.setSpacing(50)  # 设置间距
             self.grid.addWidget(QLabel(u'文件名'), 0, 0)
             self.file_name_edit = QLineEdit(parent=self)
             reg = QRegExp("[^ \\/:*?\"<>|]*")  # 设置文本不允许出现的字符内容
@@ -439,10 +437,38 @@ class MainTab(QWidget):
             else:
                 self.file_signal.modified.emit()
 
+    class _MkdirDialog(QDialog):
+        def __init__(self, parent=None):
+            super().__init__(parent)
+
+            self.setWindowTitle(u'新建目录')
+
+            self.grid = QGridLayout()
+            self.grid.addWidget(QLabel(u'目录名'), 0, 0)
+            self.dir_name_edit = QLineEdit(parent=self)
+            reg = QRegExp("[^ \\/:*?\"<>|]*")  # 设置文本不允许出现的字符内容
+            pValidator = QRegExpValidator(self)  # 自定义文本验证器
+            pValidator.setRegExp(reg)  # 设置属性
+            self.dir_name_edit.setValidator(pValidator)
+            self.grid.addWidget(self.dir_name_edit, 0, 1)
+
+            btn_box = QDialogButtonBox(Qt.Horizontal, self)
+            btn_box_ok = QPushButton(u'确定', self)
+            btn_box.addButton(btn_box_ok, QDialogButtonBox.AcceptRole)
+            btn_box_cancel = QPushButton(u'取消', self)
+            btn_box.addButton(btn_box_cancel, QDialogButtonBox.RejectRole)
+            self.grid.addWidget(btn_box, 1, 0, 1, 2)
+
+            btn_box.accepted.connect(self.accept)
+            btn_box.rejected.connect(self.reject)
+
+            self.setLayout(self.grid)
+
     def ui_mkdir(self):
-        name, ok = QInputDialog.getText(self, '新建目录', '输入目录名')
-        if ok and name:
-            ret_code = self.view.file_module.mkdir(name)
+        mkdir_dialog = self._MkdirDialog()
+        if mkdir_dialog.exec_():
+            dir_name = mkdir_dialog.dir_name_edit.text()
+            ret_code = self.view.file_module.mkdir(dir_name)
             if ret_code != Ret_State.Success:
                 QMessageBox.information(self, u'警告', u'文件夹已存在')
             else:
