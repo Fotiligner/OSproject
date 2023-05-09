@@ -4,6 +4,7 @@ from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import QRegExp, QObject, pyqtSignal, QThread
 from PyQt5.QtGui import QPainter, QIcon, QCursor, QPixmap, QIntValidator, QRegExpValidator
 import time
+import threading
 
 # 测试designer创建界面
 # from main_test import Ui_MainWindow
@@ -317,13 +318,17 @@ class MainTab(QWidget):
                 is_bat = True
 
         if is_bat:
-            self.run_bat(selected_items)
+            self.run_bat_in_thread(selected_items)
         elif not is_executable:
             reply = QMessageBox.information(self, "Error", "Non-executable files included",
                                             QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         else:
             for i in selected_items:
                 self.process_module.create_process(i.node_name, 1)
+
+    def run_bat_in_thread(self, file):
+        t = threading.Thread(target=self.run_bat, args=(file,))
+        t.start()
 
     def run_bat(self, file):
         try:

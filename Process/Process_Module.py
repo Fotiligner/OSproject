@@ -121,6 +121,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
         self.chd_pid = 0
         self.kill = False
         self.over_now = False
+        self.pause_now = False
 
         self.memory_module.signal_2.connect(self.create_process_plus)
 
@@ -327,12 +328,14 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                     self.waiting_queue.remove(return_dict['pid'])
 
                 for return_dict in disk_output:
+
                     print("在" + str(current_time) + "时刻" + "进程" + str(
                         self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pid) + "完成磁盘IO")
                     if return_dict['rw_state'] != 'p': # 若不是缺页中断才能pc + 1
                         self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc = self.add_pc(self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc)
                     self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].status = "ready"
                     self.ready_queue.append(return_dict['pid'])  # 完成io的程序从waiting到ready
+                    print("test waiting"+str(self.waiting_queue))
                     self.waiting_queue.remove(return_dict['pid'])
 
 
@@ -364,6 +367,9 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
             elif not e.is_set():           # 进入中断
                 e.wait()  # 正在阻塞状态,当event变为True时就激活
                 self.process_over()
+                if(self.pause_now):
+                    self.pause_now =False
+                    self.running_pid = -1
                 #print("一个原子时间结束,启动调度算法")
                 #self.set_end(self.running_pid, current_time)
                 self.scheduler("time")  # 进程抢占在这里完成
@@ -376,9 +382,9 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
         if self.running_pid != -1:  # 考虑keyboard这种外界输入
             self.pcb_pool[self.loc_pid_inPool(self.running_pid)].status = "waiting"   # 更改PCB状态
             self.waiting_queue.append(self.running_pid)   # 更改waiting队列状态
-            self.set_end(self.running_pid, current_time)  # 更新结束时间
-            self.running_pid = -1   # 将当前的running 进程取消状态，便于之后scheduler
-
+            #self.set_end(self.running_pid, current_time)  # 更新结束时间
+            #self.running_pid = -1   # 将当前的running 进程取消状态，便于之后scheduler
+            self.process_pause_safe()  # 安全暂停进程
         # keyboard这种外界输入中断在同一秒结束waiting
         if type == "keyboard" and pid != -1:  # 键盘触发且非空转状态
             self.pcb_pool[self.loc_pid_inPool(pid)].status = "ready"
@@ -468,7 +474,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
 
         elif command[0] == "exit":
             if self.running_pid != -1:
-                self.set_end(self.running_pid, current_time)
+                #self.set_end(self.running_pid, current_time)
                 print("在" + str(current_time) + "时刻" + "进程" + str(
                     self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid) + "运行结束")
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].final_time = current_time
@@ -485,6 +491,9 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
             print(i.pid,end=' ')
         print("]")
         print("========")
+
+    def process_pause_safe(self):
+        self.pause_now = True
 
     def process_over_safe(self):
         self.over_now = True
@@ -506,6 +515,9 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
 
     ## 使用kill命令终止的函数 感觉其实也没有太多变化
     def kill_process(self,pid):   # 注意，不一定是将当前运行的进程kill掉，所以要区别running_pid的使用情况
+        if not pid in self.ready_queue:
+            return -1;
+
         if pid in self.ready_queue:
             self.ready_queue.remove(pid)
         if pid in self.waiting_queue:
@@ -521,7 +533,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
         if self.running_pid == pid:   # 在running kill的时候直接停止当前的running_pid
             self.running_pid = -1  # 把当前运行的改为没有
 
-        print("在" + str(current_time) + "时刻" + "进程" + str(pid) + "被杀死")
+        return("在" + str(current_time) + "时刻" + "进程" + str(pid) + "被杀死")
 
     def kill_process_safe(self,pid):
         if self.running_pid == pid:   # 在running kill的时候直接停止当前的running_pid

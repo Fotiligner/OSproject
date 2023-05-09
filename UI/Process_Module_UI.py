@@ -362,7 +362,7 @@ class createProcessLabel(QLabel):
 class SchedulerLabel(QLabel):
     def __init__(self, text):
         super().__init__()
-        self.table = QTableWidget(3, 6)
+        self.table = QTableWidget(3, 4)
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.table)
         self.setLayout(self.layout)
@@ -372,11 +372,13 @@ class SchedulerLabel(QLabel):
                 self.table.setItem(row, col, item)
 
         # 设置表头
-        header_list = ["算法名称", "CPU平均利用率", "外设平均利用率", "总时间",
-                       "平均等待时间", "平均周转时间"]
+        header_list = ["算法名称", "外设平均利用率", "总时间",
+                       "平均等待时间"]
         for i, header in enumerate(header_list):
             item = QTableWidgetItem(header)
             self.table.setHorizontalHeaderItem(i, item)
+
+
 
         self.setFixedSize(800, 250)
 
@@ -386,9 +388,10 @@ class SchedulerLabel(QLabel):
         timer.start(1000)
 
     def update_table(self):
+        testlist=[0,1,3,4]
         for row in range(self.table.rowCount()):
             for col in range(self.table.columnCount()):
-                item = QTableWidgetItem(str(table[row][col]))
+                item = QTableWidgetItem(str(table[row][testlist[col]]))
                 self.table.setItem(row, col, item)
 
 ### 属于进程系统的TAB
