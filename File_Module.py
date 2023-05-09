@@ -152,7 +152,7 @@ class Disk:
             if len(addr) >= num:
                 for i in range(len(addr)):
                     bitmap[addr[i]] = '1'
-                self.bitmap = ''.join(bitmap)
+                self.bitmap = ''.join(bitmap)  # 将列表转化为字符串
                 self.write_super_blk()
             else:
                 addr = []
@@ -335,19 +335,21 @@ class File_Module:
     def read_file(self, fcb, algo="FCFS"):
         """
         读取文件内容。
+        :param algo: 磁头寻道算法
         :param fcb:给定的fcb。
         :return: 返回文件内容，字符串类型。
         """
         buf = ["" for i in range(fcb.blk_num)]
         ret_list = self.head_seek(fcb.disk_loc, algo, 137)
         for ret in ret_list:
-            if ret[1] == -1:
+            if ret[1] == -1:  # 标识这个块不是文件的磁盘块，可能是初始磁头位置，数据区第一块或最后一块
                 continue
             str_temp = self.disk.read_block(self.disk.data_base + ret[0])
             buf[ret[1]] = str_temp
             if str_temp.find('\0') != -1:
-                str_temp = str_temp[: str_temp.find('\0') + 1]
+                str_temp = str_temp[: str_temp.find('\0') + 1]  # 若读到文件结束符需要截断结束符之后的字符
                 buf[ret[1]] = str_temp
+                break
         buf = ''.join(buf)
         return buf[:-1]  # 去除末尾的结尾符
 
@@ -361,9 +363,9 @@ class File_Module:
         """
         # 谨记python中list是可变元素
         index_lists = []
-        ret_lists = []
-        init_index_list = [init_loc, -1]
-        if init_loc in disk_locs:
+        ret_lists = []  # 返回序列，每个元素形如[disk_loc，index]的列表，disk_loc是磁盘块，index是该磁盘块在原本顺序中的位置。
+        init_index_list = [init_loc, -1]  # 用-1标识这个块不是文件的磁盘块，不需要读取内容
+        if init_loc in disk_locs:  # 检查初始位置在不在访问序列中
             init_index_list[1] = disk_locs.index(init_loc)
         index_lists.append(init_index_list)
         for i in range(len(disk_locs)):
@@ -480,7 +482,7 @@ class File_Module:
         self.make_dir(name)
         return Ret_State.Success
 
-    def touch(self, name, size=0, auth='wr-', alloc_method='default'):
+    def touch(self, name, size=0, auth='wrx', alloc_method='default'):
         """
         为shell提供的命令，创建文件。
         :param name: 文件名
