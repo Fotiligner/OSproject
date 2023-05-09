@@ -70,7 +70,7 @@ class Disk:
         with open(self.file_path, 'r') as f:
             f.seek(loc * self.blk_size)
             buf = f.read(self.blk_size)
-            return buf.replace('\1', '\n')
+            return buf.replace('\1', '\n')  # 将数据中的'\1'替换为'\n'
 
     def display(self):
         """
@@ -133,17 +133,17 @@ class Disk:
             self.bitmap = info_list[3]
         self.blk_tot_num = self.track_tot_num * self.sector_per_track
         self.size = self.blk_tot_num * self.blk_size
-        self.blk_free_num = self.blk_tot_num
 
     def disk_alloc(self, num, alloc_method="default"):
         """
         分配所需数目的磁盘块。
+        :param alloc_method: 分配方式
         :param num:所需数目。
         :return:分配的磁盘块的下标列表。
         """
         addr = []
-        if alloc_method == "default":
-            bitmap = list(self.bitmap)
+        if alloc_method == "default":  # 默认方式，顺序查找
+            bitmap = list(self.bitmap)  # 将字符串转化为列表处理
             for i in range(self.data_blk_num):
                 if bitmap[i] == '0':
                     addr.append(i)
@@ -152,15 +152,19 @@ class Disk:
             if len(addr) >= num:
                 for i in range(len(addr)):
                     bitmap[addr[i]] = '1'
-                    self.bitmap = ''.join(bitmap)
-                    self.write_super_blk()
+                self.bitmap = ''.join(bitmap)
+                self.write_super_blk()
             else:
                 addr = []
-        elif alloc_method == "random":
+        elif alloc_method == "random":  # 随机分配空闲块
             list_index = [i.start() for i in re.finditer('0', self.bitmap)]
             addr = random.sample(list_index, num)
+            bitmap = list(self.bitmap)
             for i in addr:
                 self.write_block(i + self.data_base, ' ' * self.blk_size)
+                bitmap[i] = '1'
+            self.bitmap = ''.join(bitmap)
+            self.write_super_blk()
         return addr
 
 
@@ -241,26 +245,26 @@ class File_Module:
         向磁盘中写入目录树。
         :return:
         """
-        dir_queue = [self.root_dir]
+        dir_queue = [self.root_dir]  # 层序遍历
         buf = ''
         while len(dir_queue) > 0:
             now_dir = dir_queue.pop(0)
             for c in now_dir.childs:
-                if isinstance(c, Dir):
+                if isinstance(c, Dir):  # 若是目录，加入队列
                     dir_queue.append(c)
                     buf = buf + c.name + ' d '
-                else:
+                else:  # 若是文件，文件信息
                     buf = buf + c.name + ' f '
                     buf = buf + c.auth + ' '
                     buf = buf + str(c.size) + ' '
                     buf = buf + str(c.blk_num) + ' '
                     for i in range(c.blk_num):
                         buf = buf + str(c.disk_loc[i]) + ' '
-            buf = buf + ' \0 '
+            buf = buf + ' \0 '  # 使用'\0'标识一个目录的完结
         dir_base = self.disk.dir_base
         blk_size = self.disk.blk_size
-        with open(self.disk.file_path, 'r+') as f:
-            f.seek(dir_base * blk_size)
+        with open(self.disk.file_path, 'r+') as f:  # 写回磁盘文件
+            f.seek(dir_base * blk_size)  # 基于目录区偏移
             f.write(buf)
 
     def make_fcb(self, name, disk_addr, size, auth):
