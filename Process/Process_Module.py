@@ -439,7 +439,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
             type, self.chd_pid = self.getCurrentpid()  # 从success里调到外，可能有bug
             if running_pid != -1:
                 name_of_file =self.pcb_pool[self.loc_pid_inPool(self.running_pid)].file_name
-            alloc_output = self.memory_module.alloc(self.chd_pid, self.page_per_process,name_of_file )
+            alloc_output = self.memory_module.alloc(self.chd_pid, self.page_per_process,name_of_file, type=0)
             if alloc_output >= 0:  # 内存分配成功
                 #先创建一个pcb 随便一个pcb  然后深层复制
                 fork_pcb = PCB(self.chd_pid, parent_pid=-1, \
