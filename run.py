@@ -58,8 +58,8 @@ class Main_Board(QMainWindow, Ui_MainWindow):
         self.tab_3.start()
 
         # 下面将输出重定向到textBrowser中
-        #sys.stdout = EmittingStr(textWritten=self.outputWritten)
-        #sys.stderr = EmittingStr(textWritten=self.outputWritten)
+        sys.stdout = EmittingStr(textWritten=self.outputWritten)
+        sys.stderr = EmittingStr(textWritten=self.outputWritten)
 
     def ui_cmd(self):  # 调整主界面可视化
         if not self.tab_visible:
