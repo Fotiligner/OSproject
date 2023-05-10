@@ -21,9 +21,9 @@ class EmittingStr(QtCore.QObject):
 
     def write(self, text):
         self.textWritten.emit(str(text))
-        loop = QEventLoop()
-        QTimer.singleShot(100, loop.quit)
-        loop.exec_()
+        #loop = QEventLoop()
+        #QTimer.singleShot(100, loop.quit)
+        #loop.exec_()
 
 
 class FileSignal(QObject):

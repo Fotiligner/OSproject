@@ -70,13 +70,13 @@ class FileTab(QWidget):
         file_name = self.file_combox.currentText()
         algo = self.algo_combox.currentText()
         file_node = self.file_module.get_fcb(file_name)
-        ret_list = self.file_module.head_seek(file_node.disk_loc, algo, 137)
+        ret_list = self.file_module.head_seek(file_node.disk_loc, algo, 371)
         y = [i[0] for i in ret_list]
         x = [i for i in range(len(ret_list))]
 
         self.row1_layout.removeWidget(self.scrollare)
         text = u'磁头寻道请求序列：' + str(file_node.disk_loc) + '\n'
-        text += u'初始磁头位置：137    扫描方向：从小到大' + '\n'
+        text += u'初始磁头位置：371    扫描方向：从小到大' + '\n'
         text += str(algo) + '调度序列：' + str(y) + '\n'
         text += u'文件内容：\n'
         text += self.file_module.read_file(file_node, algo=algo)

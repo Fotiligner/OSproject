@@ -41,7 +41,7 @@ class IO_Module(QObject):
         self.keyboard_input_content = None
 
     def add_request(self, **args):
-        print(args)
+        #print(args)
         request = Request(args)
         self.signal.emit(request)
 
@@ -67,7 +67,7 @@ class IO_Module(QObject):
                     if request.file_path in self.file_table.keys() and ((self.file_table[request.file_path] == 'r' \
                                                                         and request.rw_state != 'w') \
                                                                         or self.file_table[request.file_path] == '0'):  # 已经存在且处于读状态
-                        print("writing enter")
+                        # print("writing enter")
                         if self.memory_module.search_file(request.file_path) == 1:
                             self.file_table[request.file_path] = request.rw_state
                             request.is_running = 1
@@ -77,7 +77,7 @@ class IO_Module(QObject):
                                 self.file_table[request.file_path] = request.rw_state
                                 request.is_running = 1
                     elif request.file_path not in self.file_table.keys():
-                        print("reading enter")
+                        # print("reading enter")
                         # 根本不存在，没有进来过，直接开始分配
                         target = self.memory_module.falloc(request.file_path)
                         if target == 1:  # 分配成功

@@ -279,7 +279,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                     ## 向内存中要一段代码的位置 传递过去pid和程序计数器pc  返回一个字符串  需要提前定义好一行指令的大小
                     ## 下面这行代码会放入内存取地址的内容
                     command = self.memory_module.page_PC(self.running_pid, self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)
-                    print(str(command)+str(self.running_pid)+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc))
+                    #print(str(command)+str(self.running_pid)+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc))
                     if command == -1:
                         # 防止结尾的中断指令被识别为进程结束，中断的pc+1在回传的时候完成
                         # self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1  # 指令行数增加，指向下一条指令
@@ -292,7 +292,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                         # 缺页中断
                     else:
                         command = command.split()
-                        print(str(command)+str(self.running_pid)+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc))
+
                         self.command_running(command, self.running_pid)
 
                     # 这里需要判断是否缺页，缺页则直接中断，放入waiting_list中，同时在一个周期之后从waiting调入ready状态，其实当前时刻内存是已经将缺的页数放入了
@@ -307,22 +307,23 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 # 检测键盘输入
                 if self.io_module.keyboard_event:
                     self.io_module.keyboard_event = False
-                    print("keyboard内容是" + self.io_module.keyboard_input_content)
+
                     self.io_interrupt("keyboard")
 
 
                 device_output = self.io_module.IO_run()
                 # print(device_output)
                 if len(device_output) > 0:
-                    print(device_output)
+                    #print(device_output)
+                    pass
 
                 disk_output = self.io_module.disk_io_run()
                 if len(disk_output) > 0:
-                    print(disk_output)
-
+                    #print(disk_output)
+                    pass
                 for return_dict in device_output:   # 当前时刻返回的device信息，用来指示已完成IO的进程信息以及传输的数据
-                    print("在" + str(current_time) + "时刻" + "进程" + str(
-                        self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pid) + "完成设备IO")
+                    #print("在" + str(current_time) + "时刻" + "进程" + str(
+                        #self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pid) + "完成设备IO")
                     self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc = self.add_pc(self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc)
                     self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].status = "ready"
                     self.ready_queue.append(return_dict['pid'])  # 完成io的程序从waiting到ready
@@ -330,13 +331,13 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
 
                 for return_dict in disk_output:
 
-                    print("在" + str(current_time) + "时刻" + "进程" + str(
-                        self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pid) + "完成磁盘IO")
-                    if return_dict['rw_state'] != 'p': # 若不是缺页中断才能pc + 1
+                    #print("在" + str(current_time) + "时刻" + "进程" + str(
+                        #self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pid) + "完成磁盘IO")
+                    if return_dict['rw_state'] != 'p':     # 若不是缺页中断才能pc + 1
                         self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc = self.add_pc(self.pcb_pool[self.loc_pid_inPool(return_dict["pid"])].pc)
                     self.pcb_pool[self.loc_pid_inPool(return_dict['pid'])].status = "ready"
                     self.ready_queue.append(return_dict['pid'])  # 完成io的程序从waiting到ready
-                    print("test waiting"+str(self.waiting_queue))
+                    #print("test waiting"+str(self.waiting_queue))
                     self.waiting_queue.remove(return_dict['pid'])
 
 
@@ -353,8 +354,8 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
 
                 # 因为中断会将running_pid设为-1，因此首先判断running pid是否为-1
 
-                if(self.running_pid != -1):
-                    print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行中")
+                #if(self.running_pid != -1):
+                    #print("在"+str(current_time)+"时刻"+"进程"+str(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pid)+"运行中")
                     #self.current_status_label.table_updated.emit()  # 发送信号
                     #self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc += 1
                 # elif self.running_pid != -1:
@@ -398,7 +399,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
             self.pcb_pool[self.loc_pid_inPool(self.running_pid)].command_already_time += 1   # 针对cpu指令完成时间的测试
 
             if self.pcb_pool[self.loc_pid_inPool(self.running_pid)].command_already_time == time:
-                print("1")
+                #print("1")
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc = self.add_pc(self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)   # 指令行数增加，指向下一条指令
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].command_already_time = 0
             return
@@ -430,7 +431,7 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
             # -1
 
             if address_content == -2: # 地址出错
-                print("2")
+                #print("2")
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc = self.add_pc(
                     self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)  # 指令行数增加，指向下一条指令
             elif address_content == -1: # 缺页中断
@@ -440,13 +441,12 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                                            rw_state='p', address=None)
                 self.io_interrupt("page_fault")
             else:
-                print("访问的地址内容为：" + address_content)
+                #print("访问的地址内容为：" + address_content)
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc = self.add_pc(
                     self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc)  # 指令行数增加，指向下一条指令
         elif command[0] == "fork":
 
             type, self.current_pid = self.getCurrentpid()  # 从success里调到外，可能有bug
-            print("检测到的结果是"+type)
             if running_pid != -1:
                 name_of_file =self.pcb_pool[self.loc_pid_inPool(self.running_pid)].file_name
             alloc_output = self.memory_module.alloc(self.current_pid, self.page_per_process,name_of_file, type=0)
@@ -461,19 +461,18 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
 
                     fork_pcb.parent_pid = self.running_pid
                     self.pcb_pool.append(fork_pcb)  #pc_end=2 , content = "cpu 2;output printer asdfasdf 3;cpu 3"))   # 暂时
-                    print("当前的pcb_pool:"+str(self.pcb_pool[1].pid))
 
                 elif(type == "old"):
                     fork_pcb = self.pcb_pool[self.loc_pid_inPool(self.current_pid)]
                     #self.pcb_pool[self.loc_pid_inPool(self.current_pid)] = copy.deepcopy(self.pcb_pool[self.loc_pid_inPool(self.running_pid)])
                     self.pcb_pool[self.loc_pid_inPool(self.current_pid)].pid = self.current_pid
+                    self.pcb_pool[self.loc_pid_inPool(self.current_pid)].priority = 1
                     self.pcb_pool[self.loc_pid_inPool(self.current_pid)].file_name=name_of_file
                     self.pcb_pool[self.loc_pid_inPool(self.current_pid)].pc=self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc
                     self.pcb_pool[self.loc_pid_inPool(self.current_pid)].pc = self.add_pc(self.pcb_pool[self.loc_pid_inPool(self.current_pid)].pc)
                     self.pcb_pool[self.loc_pid_inPool(self.current_pid)].parent_pid = self.running_pid
-                    print(self.pcb_pool[self.loc_pid_inPool(self.current_pid)].show_pcb)
 
-                print("current_pid"+str(self.current_pid))
+                #print("current_pid"+str(self.current_pid))
                 self.ready_queue.append(self.current_pid)  # 存储指向pcb_pool下标的代码
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].child_pid = self.current_pid
                 self.pcb_pool[self.loc_pid_inPool(self.running_pid)].pc = \
@@ -487,9 +486,8 @@ class Process_Module(threading.Thread, Process.Scheduler.ProcessScheduler, Proce
                 elif alloc_output == -1:
                     print("error" + " not enough room for pages of this process")
 
-            print("fork复制时, 复制出来的进程pc:" + str(fork_pcb.pc))
-            print("fork结束时, ready_queue的第一个定位在:"+str(self.loc_pid_inPool(self.ready_queue[0])))
-            print("fork结束时, 在ready_queue里的进程pc:" + str(self.pcb_pool[self.loc_pid_inPool(self.ready_queue[0])].pc))
+            ##print("fork结束时, ready_queue的第一个定位在:"+str(self.loc_pid_inPool(self.ready_queue[0])))
+            #print("fork结束时, 在ready_queue里的进程pc:" + str(self.pcb_pool[self.loc_pid_inPool(self.ready_queue[0])].pc))
         elif command[0] == "exit":
             if self.running_pid != -1:
                 #self.set_end(self.running_pid, current_time)

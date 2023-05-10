@@ -341,18 +341,17 @@ class File_Module:
         :return: 返回文件内容，字符串类型。
         """
         buf = ["" for i in range(fcb.blk_num)]
-        ret_list = self.head_seek(fcb.disk_loc, algo, 137)
+        ret_list = self.head_seek(fcb.disk_loc, algo, 371)
         for ret in ret_list:
             if ret[1] == -1:  # 标识这个块不是文件的磁盘块，可能是初始磁头位置，数据区第一块或最后一块
                 continue
             str_temp = self.disk.read_block(self.disk.data_base + ret[0])
             buf[ret[1]] = str_temp
             if str_temp.find('\0') != -1:
-                str_temp = str_temp[: str_temp.find('\0') + 1]  # 若读到文件结束符需要截断结束符之后的字符
                 buf[ret[1]] = str_temp
-                break
         buf = ''.join(buf)
-        return buf[:-1]  # 去除末尾的结尾符
+        buf = buf[: buf.find('\0') ] # 若读到文件结束符需要截断结束符之后的字符
+        return buf
 
     def head_seek(self, disk_locs, algo, init_loc):
         """
@@ -410,6 +409,7 @@ class File_Module:
                 if 0 not in disk_locs:
                     index_lists.append([0, -1])
                 index_lists.sort(key=lambda x: x[0])
+                init_index = index_lists.index(init_index_list)
                 ret_lists.extend(index_lists[init_index:])
                 ret_lists.extend(index_lists[:init_index])
         elif algo == "LOOK":
